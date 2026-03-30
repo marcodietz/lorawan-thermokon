@@ -92,8 +92,16 @@
         width: 100%;
         padding: 5px;
     }
+    .sticky-output {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: #f5f5f5;
+        padding: 12px 0 8px 0;
+        margin-bottom: 10px;
+    }
     #output {
-        margin-top: 20px;
+        margin-top: 0;
         padding: 15px;
         background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
         border-left: 4px solid #d32f2f;
@@ -233,6 +241,58 @@
         letter-spacing: 0.5px;
         text-transform: capitalize;
     }
+    .header-info {
+        width: 30px;
+        text-align: center;
+    }
+    .info-icon {
+        width: 30px;
+        text-align: center;
+        flex-shrink: 0;
+        margin-left: 15px;
+    }
+    .info-icon button {
+        background: none;
+        border: 1.5px solid #007bff;
+        border-radius: 50%;
+        width: 22px;
+        height: 22px;
+        cursor: pointer;
+        font-size: 11px;
+        color: #007bff;
+        font-weight: bold;
+        font-style: italic;
+        font-family: Georgia, serif;
+        padding: 0;
+        margin: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+    .info-icon button:hover {
+        background: #007bff;
+        color: white;
+    }
+    .info-tooltip {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        background: #333;
+        color: #fff;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-family: Arial, sans-serif;
+        white-space: normal;
+        max-width: 360px;
+        line-height: 1.5;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        pointer-events: none;
+    }
+    .info-tooltip.visible {
+        display: block;
+    }
 </style>
 </head>
 <body>
@@ -252,9 +312,11 @@
 </div>
 
 <div id="generator" class="page active">
-<h3 id="outputTitle">Generierter Downlink</h3>
+<div class="sticky-output">
+<h3 id="outputTitle" style="margin:0 0 6px 0;">Generierter Downlink</h3>
 <div id="output">(kein Wert gesetzt)</div>
 <button onclick="copyToClipboard()" id="copyBtn" disabled>In Zwischenablage kopieren</button>
+</div>
 
 <div class="container">
 
@@ -267,7 +329,9 @@
 <div class="info-content">
     <div class="info-grid">
         <div class="info-image">
-            <img src="https://www.thermokon.de/typo3conf/ext/tm_thermokon/Resources/Public/Img/thermokon_logo.svg" alt="Thermokon JOY">
+            <img src="https://www.thermokon.de/typo3conf/ext/tm_thermokon/Resources/Public/Img/thermokon_logo.svg" alt="Thermokon Logo" style="margin-bottom: 20px;">
+            <br>
+            <img src="https://www.thermokon.de/direct/alterra-base/mimes/get/d1605e971841f3091" alt="Thermokon JOY LoRaWAN" style="max-width: 50%;">
         </div>
         <div class="info-text">
             <h2 id="infoTitle">LoRaWAN Sensor - Thermokon JOY</h2>
@@ -326,55 +390,129 @@ const translations = {
 };
 
 const configParametersData = [
-    { de: "Vorgabe Sprache", en: "Language Setting", hex: "0004", meta: 3, name: "language" },
-    { de: "Offset interner Sensor", en: "Internal Sensor Offset", hex: "0005", meta: 4, name: "offset_internal" },
-    { de: "Offset externer Sensor", en: "External Sensor Offset", hex: "0006", meta: 5, name: "offset_external" },
-    { de: "Einheit Temperatur", en: "Temperature Unit", hex: "0007", meta: 6, name: "temperature_unit" },
-    { de: "Format Uhrzeit", en: "Time Format", hex: "0008", meta: 7, name: "time_format" },
-    { de: "Format Datum", en: "Date Format", hex: "0009", meta: 8, name: "date_format" },
-    { de: "Anzahl Lüfterstufen", en: "Number of Fan Levels", hex: "000A", meta: 9, name: "fan_levels" },
-    { de: "Anzeige Hauptbildschirm", en: "Main Display", hex: "000B", meta: 10, name: "main_display" },
+    { de: "Vorgabe Sprache", en: "Language Setting", hex: "0004", meta: 3, name: "language",
+      info_de: "Gerätesprache einstellen. 0 = Deutsch, 1 = Englisch, 2 = Französisch.",
+      info_en: "Set device language. 0 = German, 1 = English, 2 = French." },
+    { de: "Offset interner Sensor", en: "Internal Sensor Offset", hex: "0005", meta: 4, name: "offset_internal",
+      info_de: "Korrekturwert für den internen Sensor in 0,1 K Schritten (z. B. 5 = +0,5 K).",
+      info_en: "Correction value for the internal sensor in 0.1 K steps (e.g. 5 = +0.5 K)." },
+    { de: "Offset externer Sensor", en: "External Sensor Offset", hex: "0006", meta: 5, name: "offset_external",
+      info_de: "Korrekturwert für den externen Sensor in 0,1 K Schritten (z. B. -3 = -0,3 K).",
+      info_en: "Correction value for the external sensor in 0.1 K steps (e.g. -3 = -0.3 K)." },
+    { de: "Einheit Temperatur", en: "Temperature Unit", hex: "0007", meta: 6, name: "temperature_unit",
+      info_de: "Anzeigeeinheit für Temperatur. 0 = Celsius (°C), 1 = Fahrenheit (°F).",
+      info_en: "Display unit for temperature. 0 = Celsius (°C), 1 = Fahrenheit (°F)." },
+    { de: "Format Uhrzeit", en: "Time Format", hex: "0008", meta: 7, name: "time_format",
+      info_de: "Uhrzeitformat wählen. 0 = 24-Stunden-Format, 1 = 12-Stunden-Format (AM/PM).",
+      info_en: "Select time format. 0 = 24-hour format, 1 = 12-hour format (AM/PM)." },
+    { de: "Format Datum", en: "Date Format", hex: "0009", meta: 8, name: "date_format",
+      info_de: "Datumsformat wählen. 0 = TT.MM.JJJJ, 1 = MM/TT/JJJJ.",
+      info_en: "Select date format. 0 = DD.MM.YYYY, 1 = MM/DD/YYYY." },
+    { de: "Anzahl Lüfterstufen", en: "Number of Fan Levels", hex: "000A", meta: 9, name: "fan_levels",
+      info_de: "Anzahl der verfügbaren Lüfterstufen eingeben (z. B. 3 für Stufe 1–3).",
+      info_en: "Enter number of available fan levels (e.g. 3 for levels 1–3)." },
+    { de: "Anzeige Hauptbildschirm", en: "Main Display", hex: "000B", meta: 10, name: "main_display",
+      info_de: "Informationen für den Hauptbildschirm festlegen. 0 = Temperatur, 1 = Feuchte, 2 = CO2.",
+      info_en: "Define main screen content. 0 = Temperature, 1 = Humidity, 2 = CO2." },
     // Footer Symbols (Rows 9-13)
-    { de: "Fußzeile Symbol 1", en: "Footer Symbol 1", hex: "000C", meta: 11, name: "symbol_1_footer" },
-    { de: "Fußzeile Symbol 2", en: "Footer Symbol 2", hex: "000D", meta: 12, name: "symbol_2_footer" },
-    { de: "Fußzeile Symbol 3", en: "Footer Symbol 3", hex: "000E", meta: 13, name: "symbol_3_footer" },
-    { de: "Fußzeile Symbol 4", en: "Footer Symbol 4", hex: "000F", meta: 14, name: "symbol_4_footer" },
-    { de: "Fußzeile Symbol 5", en: "Footer Symbol 5", hex: "0010", meta: 15, name: "symbol_5_footer" }
+    { de: "Fußzeile Symbol 1", en: "Footer Symbol 1", hex: "000C", meta: 11, name: "symbol_1_footer",
+      info_de: "Symbol für die erste Position in der Fußzeile. Wert gemäß Symboltabelle eingeben.",
+      info_en: "Symbol for the first footer position. Enter value according to symbol table." },
+    { de: "Fußzeile Symbol 2", en: "Footer Symbol 2", hex: "000D", meta: 12, name: "symbol_2_footer",
+      info_de: "Symbol für die zweite Position in der Fußzeile. Wert gemäß Symboltabelle eingeben.",
+      info_en: "Symbol for the second footer position. Enter value according to symbol table." },
+    { de: "Fußzeile Symbol 3", en: "Footer Symbol 3", hex: "000E", meta: 13, name: "symbol_3_footer",
+      info_de: "Symbol für die dritte Position in der Fußzeile. Wert gemäß Symboltabelle eingeben.",
+      info_en: "Symbol for the third footer position. Enter value according to symbol table." },
+    { de: "Fußzeile Symbol 4", en: "Footer Symbol 4", hex: "000F", meta: 14, name: "symbol_4_footer",
+      info_de: "Symbol für die vierte Position in der Fußzeile. Wert gemäß Symboltabelle eingeben.",
+      info_en: "Symbol for the fourth footer position. Enter value according to symbol table." },
+    { de: "Fußzeile Symbol 5", en: "Footer Symbol 5", hex: "0010", meta: 15, name: "symbol_5_footer",
+      info_de: "Symbol für die fünfte Position in der Fußzeile. Wert gemäß Symboltabelle eingeben.",
+      info_en: "Symbol for the fifth footer position. Enter value according to symbol table." }
 ];
 
 const runtimeParametersData = [
     // Setpoint Parameters (Rows 14-15)
-    { de: "Basissollwert", en: "Base Setpoint", hex: "0100", meta: 255, name: "setpoint_base" },
-    { de: "Sollwert Offset", en: "Setpoint Offset", hex: "0101", meta: 256, name: "setpoint_offset" },
+    { de: "Basissollwert", en: "Base Setpoint", hex: "0100", meta: 255, name: "setpoint_base",
+      info_de: "Gewünschten Basissollwert in 0,1 K Schritten eingeben (z. B. 210 = 21,0 °C).",
+      info_en: "Enter desired base setpoint in 0.1 K steps (e.g. 210 = 21.0 °C)." },
+    { de: "Sollwert Offset", en: "Setpoint Offset", hex: "0101", meta: 256, name: "setpoint_offset",
+      info_de: "Offset zum Basissollwert in 0,1 K Schritten (z. B. 10 = +1,0 K).",
+      info_en: "Offset to base setpoint in 0.1 K steps (e.g. 10 = +1.0 K)." },
     // Presence & Override (Rows 16-19)
-    { de: "Vorgabe Präsenz", en: "Presence Setting", hex: "0102", meta: 257, name: "presence_overwrite" },
-    { de: "Vorgabe Taupunkt", en: "Dew Point Setting", hex: "0103", meta: 258, name: "dewpoint_overwrite" },
-    { de: "Vorgabe Fensterkontakt/Energiesperre", en: "Window Contact/Energy Lock", hex: "0104", meta: 259, name: "windowcontact_overwrite" },
-    { de: "Vorgabe Change-Over", en: "Change-Over Setting", hex: "0105", meta: 260, name: "changeover_overwrite" },
+    { de: "Vorgabe Präsenz", en: "Presence Setting", hex: "0102", meta: 257, name: "presence_overwrite",
+      info_de: "Präsenzzustand überschreiben. 0 = abwesend, 1 = anwesend, 2 = freigegeben (automatisch).",
+      info_en: "Override presence state. 0 = absent, 1 = present, 2 = released (automatic)." },
+    { de: "Vorgabe Taupunkt", en: "Dew Point Setting", hex: "0103", meta: 258, name: "dewpoint_overwrite",
+      info_de: "Taupunktsperre überschreiben. 0 = keine Sperre, 1 = Taupunkt erkannt (Sperre aktiv).",
+      info_en: "Override dew point lock. 0 = no lock, 1 = dew point detected (lock active)." },
+    { de: "Vorgabe Fensterkontakt/Energiesperre", en: "Window Contact/Energy Lock", hex: "0104", meta: 259, name: "windowcontact_overwrite",
+      info_de: "Fensterkontaktzustand überschreiben. 0 = Fenster geschlossen, 1 = Fenster offen (Energiesperre).",
+      info_en: "Override window contact state. 0 = window closed, 1 = window open (energy lock)." },
+    { de: "Vorgabe Change-Over", en: "Change-Over Setting", hex: "0105", meta: 260, name: "changeover_overwrite",
+      info_de: "Betriebsart überschreiben. 0 = Kühlen, 1 = Heizen, 2 = freigegeben (automatisch).",
+      info_en: "Override operating mode. 0 = cooling, 1 = heating, 2 = released (automatic)." },
     // Device Control (Rows 20-22)
-    { de: "Gerät Ein/Standby (Aus)", en: "Device On/Standby (Off)", hex: "0106", meta: 261, name: "standby" },
-    { de: "Freigabe Tasten", en: "Button Enable", hex: "0107", meta: 262, name: "button_enable" },
-    { de: "Vorgabe Alarm", en: "Alarm Setting", hex: "0108", meta: 263, name: "alarm" },
+    { de: "Gerät Ein/Standby (Aus)", en: "Device On/Standby (Off)", hex: "0106", meta: 261, name: "standby",
+      info_de: "Gerätestatus setzen. 0 = Standby (Aus), 1 = Ein (normaler Betrieb).",
+      info_en: "Set device status. 0 = Standby (Off), 1 = On (normal operation)." },
+    { de: "Freigabe Tasten", en: "Button Enable", hex: "0107", meta: 262, name: "button_enable",
+      info_de: "Tastensperrung einstellen. 0 = alle Tasten gesperrt, 1 = alle Tasten freigegeben.",
+      info_en: "Set button lock. 0 = all buttons locked, 1 = all buttons enabled." },
+    { de: "Vorgabe Alarm", en: "Alarm Setting", hex: "0108", meta: 263, name: "alarm",
+      info_de: "Alarmzustand setzen. 0 = kein Alarm, 1 = Alarm aktiv.",
+      info_en: "Set alarm state. 0 = no alarm, 1 = alarm active." },
     // Time/Date Parameters (Rows 23-27)
-    { de: "Uhrzeit Stunde", en: "Time Hour", hex: "0109", meta: 264, name: "hour" },
-    { de: "Uhrzeit Minute", en: "Time Minute", hex: "010A", meta: 265, name: "minute" },
-    { de: "Datum Tag", en: "Date Day", hex: "010B", meta: 266, name: "day" },
-    { de: "Datum Monat", en: "Date Month", hex: "010C", meta: 267, name: "month" },
-    { de: "Datum Jahr", en: "Date Year", hex: "010D", meta: 268, name: "year" },
+    { de: "Uhrzeit Stunde", en: "Time Hour", hex: "0109", meta: 264, name: "hour",
+      info_de: "Aktuelle Stunde eintragen (0–23).",
+      info_en: "Enter current hour (0–23)." },
+    { de: "Uhrzeit Minute", en: "Time Minute", hex: "010A", meta: 265, name: "minute",
+      info_de: "Aktuelle Minute eintragen (0–59).",
+      info_en: "Enter current minute (0–59)." },
+    { de: "Datum Tag", en: "Date Day", hex: "010B", meta: 266, name: "day",
+      info_de: "Aktuellen Tag eintragen (1–31).",
+      info_en: "Enter current day (1–31)." },
+    { de: "Datum Monat", en: "Date Month", hex: "010C", meta: 267, name: "month",
+      info_de: "Aktuellen Monat eintragen (1–12).",
+      info_en: "Enter current month (1–12)." },
+    { de: "Datum Jahr", en: "Date Year", hex: "010D", meta: 268, name: "year",
+      info_de: "Aktuelles Jahr eintragen (z. B. 2026).",
+      info_en: "Enter current year (e.g. 2026)." },
     // Controller & Output Settings (Rows 28-33)
-    { de: "Vorgabe Regler", en: "Controller Setting", hex: "010E", meta: 269, name: "overwrite_controller" },
-    { de: "Vorgabe Lüfterstufe", en: "Fan Level Setting", hex: "010F", meta: 270, name: "fan_level_setting" },
-    { de: "Vorgabe Ausgang Heizen", en: "Heating Output Setting", hex: "0110", meta: 271, name: "heating_output_setting" },
-    { de: "Vorgabe Ausgang Kühlen", en: "Cooling Output Setting", hex: "0111", meta: 272, name: "cooling_output_setting" },
-    { de: "Vorgabe Ausgang 6-Wegeventil", en: "6-Way Valve Output Setting", hex: "0112", meta: 273, name: "valve_6way_output_setting" },
-    { de: "Vorgabe ECO-Modus Übersteuern", en: "ECO Mode Override", hex: "0111", meta: 274, name: "eco_mode_override" }
+    { de: "Vorgabe Regler", en: "Controller Setting", hex: "010E", meta: 269, name: "overwrite_controller",
+      info_de: "Reglermodus überschreiben. 0 = freigegeben (automatisch), 1 = manuell übersteuert.",
+      info_en: "Override controller mode. 0 = released (automatic), 1 = manually overridden." },
+    { de: "Vorgabe Lüfterstufe", en: "Fan Level Setting", hex: "010F", meta: 270, name: "fan_level_setting",
+      info_de: "Lüfterstufe manuell vorgeben. 0 = Automatik, 1–5 = manuelle Stufe.",
+      info_en: "Manually set fan level. 0 = automatic, 1–5 = manual level." },
+    { de: "Vorgabe Ausgang Heizen", en: "Heating Output Setting", hex: "0110", meta: 271, name: "heating_output_setting",
+      info_de: "Heizausgang manuell vorgeben in % (0–100). 0 = aus, 100 = volle Leistung.",
+      info_en: "Manually set heating output in % (0–100). 0 = off, 100 = full power." },
+    { de: "Vorgabe Ausgang Kühlen", en: "Cooling Output Setting", hex: "0111", meta: 272, name: "cooling_output_setting",
+      info_de: "Kühlausgang manuell vorgeben in % (0–100). 0 = aus, 100 = volle Leistung.",
+      info_en: "Manually set cooling output in % (0–100). 0 = off, 100 = full power." },
+    { de: "Vorgabe Ausgang 6-Wegeventil", en: "6-Way Valve Output Setting", hex: "0112", meta: 273, name: "valve_6way_output_setting",
+      info_de: "Stellung des 6-Wegeventils vorgeben in % (0–100).",
+      info_en: "Set 6-way valve position in % (0–100)." },
+    { de: "Vorgabe ECO-Modus Übersteuern", en: "ECO Mode Override", hex: "0111", meta: 274, name: "eco_mode_override",
+      info_de: "ECO-Modus übersteuern. 0 = ECO-Modus inaktiv, 1 = ECO-Modus erzwungen.",
+      info_en: "Override ECO mode. 0 = ECO mode inactive, 1 = ECO mode forced." }
 ];
 
 const lorawanParametersData = [
-    { de: "Heartbeat", en: "Heartbeat", hex: "C106", meta: "n.V." },
-    { de: "Confirmation", en: "Confirmation", hex: "C21D", meta: "n.V." },
-    { de: "ADR", en: "ADR", hex: "C217", meta: "n.V." },
-    { de: "Data Rate", en: "Data Rate", hex: "C218", meta: "n.V." }
+    { de: "Heartbeat", en: "Heartbeat", hex: "C106", meta: "n.V.",
+      info_de: "Heartbeat-Intervall in Minuten eintragen (z. B. 60 = alle 60 Minuten).",
+      info_en: "Enter heartbeat interval in minutes (e.g. 60 = every 60 minutes)." },
+    { de: "Confirmation", en: "Confirmation", hex: "C21D", meta: "n.V.",
+      info_de: "Bestätigungsmodus aktivieren. 0 = unbestätigt (Unconfirmed), 1 = bestätigt (Confirmed).",
+      info_en: "Enable confirmation mode. 0 = unconfirmed, 1 = confirmed." },
+    { de: "ADR", en: "ADR", hex: "C217", meta: "n.V.",
+      info_de: "Adaptive Data Rate aktivieren. 0 = ADR deaktiviert, 1 = ADR aktiviert.",
+      info_en: "Enable Adaptive Data Rate. 0 = ADR disabled, 1 = ADR enabled." },
+    { de: "Data Rate", en: "Data Rate", hex: "C218", meta: "n.V.",
+      info_de: "LoRaWAN Datenrate manuell einstellen (0–5, DR0 = SF12, DR5 = SF7).",
+      info_en: "Manually set LoRaWAN data rate (0–5, DR0 = SF12, DR5 = SF7)." }
 ];
 
 function t(key) {
@@ -398,6 +536,7 @@ function renderParameterSection(title, parameters, startIndex) {
         <div class="header-hex">Identifier Hex</div>
         <div class="header-modbus">Register Modbus</div>
         <div class="header-value">${t('valueHeader')}</div>
+        <div class="header-info"></div>
     `;
     container.appendChild(header);
     
@@ -407,12 +546,16 @@ function renderParameterSection(title, parameters, startIndex) {
         row.className = "row";
         const paramName = p[currentLanguage];
         
+        const tooltipText = currentLanguage === 'de' ? (p.info_de || '') : (p.info_en || '');
         row.innerHTML = `
             <div class="topic">${paramName}</div>
             <div class="hex-col">${p.hex}</div>
             <div class="modbus-col">[${p.meta}]</div>
             <div class="input">
                 <input type="number" min="0" max="65535" data-index="${startIndex + index}">
+            </div>
+            <div class="info-icon">
+                <button onmouseenter="showTooltip(event, '${tooltipText.replace(/'/g, "&apos;")}')" onmouseleave="hideTooltip()">i</button>
             </div>
         `;
         
@@ -440,9 +583,9 @@ function renderUI() {
         document.getElementById('enFlag').classList.add('active');
     }
     
-    renderParameterSection(t('configParam'), configParametersData, 0);
-    renderParameterSection(t('runtimeParam'), runtimeParametersData, configParametersData.length);
-    renderParameterSection(t('lorawanParam'), lorawanParametersData, configParametersData.length + runtimeParametersData.length);
+    renderParameterSection(t('runtimeParam'), runtimeParametersData, 0);
+    renderParameterSection(t('configParam'), configParametersData, runtimeParametersData.length);
+    renderParameterSection(t('lorawanParam'), lorawanParametersData, runtimeParametersData.length + configParametersData.length);
     document.getElementById("output").innerText = t('noValue');
 }
 
@@ -501,7 +644,7 @@ function toHex(value) {
 function generateDownlink() {
     let result = "";
     let count = 0;
-    const allParameters = [...configParametersData, ...runtimeParametersData, ...lorawanParametersData];
+    const allParameters = [...runtimeParametersData, ...configParametersData, ...lorawanParametersData];
 
     document.querySelectorAll("input").forEach(input => {
         if (input.value !== "" && count < 10) {
@@ -522,6 +665,42 @@ function generateDownlink() {
 
 // ==== EVENT LISTENER ====
 document.addEventListener("input", generateDownlink);
+
+// ==== TOOLTIP FUNKTIONEN ====
+const tooltip = document.createElement('div');
+tooltip.className = 'info-tooltip';
+document.body.appendChild(tooltip);
+
+function showTooltip(event, text) {
+    tooltip.textContent = text;
+    tooltip.classList.add('visible');
+    positionTooltip(event);
+}
+
+function hideTooltip() {
+    tooltip.classList.remove('visible');
+}
+
+document.addEventListener('mousemove', function(e) {
+    if (tooltip.classList.contains('visible')) {
+        positionTooltip(e);
+    }
+});
+
+function positionTooltip(e) {
+    const offset = 12;
+    let left = e.clientX + offset;
+    let top = e.clientY + offset;
+    const rect = tooltip.getBoundingClientRect();
+    if (left + rect.width > window.innerWidth - 10) {
+        left = e.clientX - rect.width - offset;
+    }
+    if (top + rect.height > window.innerHeight - 10) {
+        top = e.clientY - rect.height - offset;
+    }
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = top + 'px';
+}
 
 // ==== COPY FUNKTION ====
 function copyToClipboard() {
