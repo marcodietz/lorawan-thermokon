@@ -222,8 +222,8 @@
         margin-right: 8px;
     }
     .section-title {
-        margin-top: 20px !important;
-        margin-bottom: 10px !important;
+        margin-top: 50px !important;
+        margin-bottom: 8px !important;
         padding: 10px 0;
         border-top: 3px solid #d32f2f;
         border-bottom: 1px solid #e0e0e0;
@@ -295,6 +295,7 @@ const translations = {
         mainTitle: 'Downlink Generator JOY',
         runtimeParam: 'Laufzeit-Parameter',
         configParam: 'Konfigurationsparameter',
+        lorawanParam: 'LoRaWAN-Parameter',
         paramHeader: 'Parameter - Hex - Modbus',
         paramColumn: 'Bezeichnung Parameter',
         valueHeader: 'Wert',
@@ -310,6 +311,7 @@ const translations = {
         mainTitle: 'Downlink Generator JOY',
         runtimeParam: 'Runtime Parameters',
         configParam: 'Configuration Parameters',
+        lorawanParam: 'LoRaWAN Parameters',
         paramHeader: 'Parameter - Hex - Modbus',
         paramColumn: 'Parameter Description',
         valueHeader: 'Value',
@@ -323,35 +325,56 @@ const translations = {
     }
 };
 
-const runtimeParametersData = [
-    { de: "Uhrzeit Stunde", en: "Time Hour", hex: "0109", meta: 264 },
-    { de: "Uhrzeit Minute", en: "Time Minute", hex: "010A", meta: 265 },
-    { de: "Datum Tag", en: "Date Day", hex: "010B", meta: 266 },
-    { de: "Datum Monat", en: "Date Month", hex: "010C", meta: 267 },
-    { de: "Datum Jahr", en: "Date Year", hex: "010D", meta: 268 },
-    { de: "Basissollwert", en: "Base Setpoint", hex: "0100", meta: 255 },
-    { de: "Sollwert Offset", en: "Setpoint Offset", hex: "0101", meta: 256 },
-    { de: "Vorgabe Präsenz", en: "Presence Setting", hex: "0102", meta: 257 },
-    { de: "Vorgabe Taupunkt", en: "Dew Point Setting", hex: "0103", meta: 258 },
-    { de: "Vorgabe Fensterkontakt/Energiesperre", en: "Window Contact/Energy Lock", hex: "0104", meta: 259 },
-    { de: "Vorgabe Change-Over", en: "Change-Over Setting", hex: "0105", meta: 260 },
-    { de: "Gerät Ein/Standby (Aus)", en: "Device On/Standby (Off)", hex: "0106", meta: 261 },
-    { de: "Freigabe Tasten", en: "Button Enable", hex: "0107", meta: 262 },
-    { de: "Vorgabe Alarm", en: "Alarm Setting", hex: "0108", meta: 263 },
-    { de: "Vorgabe Regler", en: "Controller Setting", hex: "010E", meta: 269 },
-    { de: "Vorgabe Lüfterstufe", en: "Fan Level Setting", hex: "010F", meta: 270 },
-    { de: "Vorgabe Ausgang Heizen", en: "Heating Output Setting", hex: "0110", meta: 271 },
-    { de: "Vorgabe Ausgang Kühlen", en: "Cooling Output Setting", hex: "0111", meta: 272 },
-    { de: "Vorgabe Ausgang 6-Wegeventil", en: "6-Way Valve Output Setting", hex: "0112", meta: 273 },
-    { de: "Vorgabe ECO-Modus Übersteuern", en: "ECO Mode Override", hex: "0111", meta: 274 }
+const configParametersData = [
+    { de: "Vorgabe Sprache", en: "Language Setting", hex: "0004", meta: 3, name: "language" },
+    { de: "Offset interner Sensor", en: "Internal Sensor Offset", hex: "0005", meta: 4, name: "offset_internal" },
+    { de: "Offset externer Sensor", en: "External Sensor Offset", hex: "0006", meta: 5, name: "offset_external" },
+    { de: "Einheit Temperatur", en: "Temperature Unit", hex: "0007", meta: 6, name: "temperature_unit" },
+    { de: "Format Uhrzeit", en: "Time Format", hex: "0008", meta: 7, name: "time_format" },
+    { de: "Format Datum", en: "Date Format", hex: "0009", meta: 8, name: "date_format" },
+    { de: "Anzahl Lüfterstufen", en: "Number of Fan Levels", hex: "000A", meta: 9, name: "fan_levels" },
+    { de: "Anzeige Hauptbildschirm", en: "Main Display", hex: "000B", meta: 10, name: "main_display" },
+    // Footer Symbols (Rows 9-13)
+    { de: "Fußzeile Symbol 1", en: "Footer Symbol 1", hex: "000C", meta: 11, name: "symbol_1_footer" },
+    { de: "Fußzeile Symbol 2", en: "Footer Symbol 2", hex: "000D", meta: 12, name: "symbol_2_footer" },
+    { de: "Fußzeile Symbol 3", en: "Footer Symbol 3", hex: "000E", meta: 13, name: "symbol_3_footer" },
+    { de: "Fußzeile Symbol 4", en: "Footer Symbol 4", hex: "000F", meta: 14, name: "symbol_4_footer" },
+    { de: "Fußzeile Symbol 5", en: "Footer Symbol 5", hex: "0010", meta: 15, name: "symbol_5_footer" }
 ];
 
-const configParametersData = [
-    { de: "Fußzeile Symbol 1", en: "Footer Symbol 1", hex: "000C", meta: 11 },
-    { de: "Fußzeile Symbol 2", en: "Footer Symbol 2", hex: "000D", meta: 12 },
-    { de: "Fußzeile Symbol 3", en: "Footer Symbol 3", hex: "000E", meta: 13 },
-    { de: "Fußzeile Symbol 4", en: "Footer Symbol 4", hex: "000F", meta: 14 },
-    { de: "Fußzeile Symbol 5", en: "Footer Symbol 5", hex: "0010", meta: 15 }
+const runtimeParametersData = [
+    // Setpoint Parameters (Rows 14-15)
+    { de: "Basissollwert", en: "Base Setpoint", hex: "0100", meta: 255, name: "setpoint_base" },
+    { de: "Sollwert Offset", en: "Setpoint Offset", hex: "0101", meta: 256, name: "setpoint_offset" },
+    // Presence & Override (Rows 16-19)
+    { de: "Vorgabe Präsenz", en: "Presence Setting", hex: "0102", meta: 257, name: "presence_overwrite" },
+    { de: "Vorgabe Taupunkt", en: "Dew Point Setting", hex: "0103", meta: 258, name: "dewpoint_overwrite" },
+    { de: "Vorgabe Fensterkontakt/Energiesperre", en: "Window Contact/Energy Lock", hex: "0104", meta: 259, name: "windowcontact_overwrite" },
+    { de: "Vorgabe Change-Over", en: "Change-Over Setting", hex: "0105", meta: 260, name: "changeover_overwrite" },
+    // Device Control (Rows 20-22)
+    { de: "Gerät Ein/Standby (Aus)", en: "Device On/Standby (Off)", hex: "0106", meta: 261, name: "standby" },
+    { de: "Freigabe Tasten", en: "Button Enable", hex: "0107", meta: 262, name: "button_enable" },
+    { de: "Vorgabe Alarm", en: "Alarm Setting", hex: "0108", meta: 263, name: "alarm" },
+    // Time/Date Parameters (Rows 23-27)
+    { de: "Uhrzeit Stunde", en: "Time Hour", hex: "0109", meta: 264, name: "hour" },
+    { de: "Uhrzeit Minute", en: "Time Minute", hex: "010A", meta: 265, name: "minute" },
+    { de: "Datum Tag", en: "Date Day", hex: "010B", meta: 266, name: "day" },
+    { de: "Datum Monat", en: "Date Month", hex: "010C", meta: 267, name: "month" },
+    { de: "Datum Jahr", en: "Date Year", hex: "010D", meta: 268, name: "year" },
+    // Controller & Output Settings (Rows 28-33)
+    { de: "Vorgabe Regler", en: "Controller Setting", hex: "010E", meta: 269, name: "overwrite_controller" },
+    { de: "Vorgabe Lüfterstufe", en: "Fan Level Setting", hex: "010F", meta: 270, name: "fan_level_setting" },
+    { de: "Vorgabe Ausgang Heizen", en: "Heating Output Setting", hex: "0110", meta: 271, name: "heating_output_setting" },
+    { de: "Vorgabe Ausgang Kühlen", en: "Cooling Output Setting", hex: "0111", meta: 272, name: "cooling_output_setting" },
+    { de: "Vorgabe Ausgang 6-Wegeventil", en: "6-Way Valve Output Setting", hex: "0112", meta: 273, name: "valve_6way_output_setting" },
+    { de: "Vorgabe ECO-Modus Übersteuern", en: "ECO Mode Override", hex: "0111", meta: 274, name: "eco_mode_override" }
+];
+
+const lorawanParametersData = [
+    { de: "Heartbeat", en: "Heartbeat", hex: "C106", meta: "n.V." },
+    { de: "Confirmation", en: "Confirmation", hex: "C21D", meta: "n.V." },
+    { de: "ADR", en: "ADR", hex: "C217", meta: "n.V." },
+    { de: "Data Rate", en: "Data Rate", hex: "C218", meta: "n.V." }
 ];
 
 function t(key) {
@@ -417,8 +440,9 @@ function renderUI() {
         document.getElementById('enFlag').classList.add('active');
     }
     
-    renderParameterSection(t('runtimeParam'), runtimeParametersData, 0);
-    renderParameterSection(t('configParam'), configParametersData, runtimeParametersData.length);
+    renderParameterSection(t('configParam'), configParametersData, 0);
+    renderParameterSection(t('runtimeParam'), runtimeParametersData, configParametersData.length);
+    renderParameterSection(t('lorawanParam'), lorawanParametersData, configParametersData.length + runtimeParametersData.length);
     document.getElementById("output").innerText = t('noValue');
 }
 
@@ -477,7 +501,7 @@ function toHex(value) {
 function generateDownlink() {
     let result = "";
     let count = 0;
-    const allParameters = [...runtimeParametersData, ...configParametersData];
+    const allParameters = [...configParametersData, ...runtimeParametersData, ...lorawanParametersData];
 
     document.querySelectorAll("input").forEach(input => {
         if (input.value !== "" && count < 10) {
