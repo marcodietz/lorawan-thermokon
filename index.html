@@ -168,6 +168,8 @@
         cursor: pointer;
         font-weight: 600;
         transition: all 0.3s ease;
+        text-decoration: none;
+        color: inherit;
     }
     .page-tab:hover {
         border-color: #007bff;
@@ -293,6 +295,34 @@
     .info-tooltip.visible {
         display: block;
     }
+    .download-icon {
+        width: 30px;
+        text-align: center;
+        flex-shrink: 0;
+        margin-left: 4px;
+    }
+    .download-icon button {
+        background: none;
+        border: 1.5px solid #28a745;
+        border-radius: 50%;
+        width: 22px;
+        height: 22px;
+        cursor: pointer;
+        font-size: 13px;
+        color: #28a745;
+        font-weight: bold;
+        font-family: Arial, sans-serif;
+        padding: 0;
+        margin: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+    .download-icon button:hover {
+        background: #28a745;
+        color: white;
+    }
 </style>
 </head>
 <body>
@@ -309,6 +339,7 @@
 <div class="page-tabs">
     <button class="page-tab active" onclick="switchPage('generator')" id="tab-generator">Downlink Generator</button>
     <button class="page-tab" onclick="switchPage('info')" id="tab-info">Produktinformation</button>
+    <a href="Site 2.html" class="page-tab">Site 2</a>
 </div>
 
 <div id="generator" class="page active">
@@ -537,6 +568,7 @@ function renderParameterSection(title, parameters, startIndex) {
         <div class="header-modbus">Register Modbus</div>
         <div class="header-value">${t('valueHeader')}</div>
         <div class="header-info"></div>
+        <div class="header-info"></div>
     `;
     container.appendChild(header);
     
@@ -556,6 +588,9 @@ function renderParameterSection(title, parameters, startIndex) {
             </div>
             <div class="info-icon">
                 <button onmouseenter="showTooltip(event, '${tooltipText.replace(/'/g, "&apos;")}')" onmouseleave="hideTooltip()">i</button>
+            </div>
+            <div class="download-icon">
+                <button onclick="downloadParameter(${startIndex + index})" title="Download">&#x2193;</button>
             </div>
         `;
         
@@ -700,6 +735,14 @@ function positionTooltip(e) {
     }
     tooltip.style.left = left + 'px';
     tooltip.style.top = top + 'px';
+}
+
+// ==== DOWNLOAD FUNKTION ====
+function downloadParameter(index) {
+    const a = document.createElement('a');
+    a.href = 'Joy-RS485_Modbus_Handbuch_de.pdf';
+    a.download = 'Joy-RS485_Modbus_Handbuch_de.pdf';
+    a.click();
 }
 
 // ==== COPY FUNKTION ====
