@@ -421,6 +421,9 @@ const translations = {
 };
 
 const configParametersData = [
+    { de: "Typ 6-Wege Ventil", en: "Type 6 Way-Valve", hex: "0003", meta: 2, name: "type_6_way_valve",
+      info_de: "Typ des 6-Wege Ventils konfigurieren. Wert gemäß Ventiltypentabelle eingeben.",
+      info_en: "Configure 6-way valve type. Enter value according to valve type table." },
     { de: "Vorgabe Sprache", en: "Language Setting", hex: "0004", meta: 3, name: "language",
       info_de: "Gerätesprache einstellen. 0 = Deutsch, 1 = Englisch, 2 = Französisch.",
       info_en: "Set device language. 0 = German, 1 = English, 2 = French." },
@@ -430,19 +433,19 @@ const configParametersData = [
     { de: "Offset externer Sensor", en: "External Sensor Offset", hex: "0006", meta: 5, name: "offset_external",
       info_de: "Korrekturwert für den externen Sensor in 0,1 K Schritten (z. B. -3 = -0,3 K).",
       info_en: "Correction value for the external sensor in 0.1 K steps (e.g. -3 = -0.3 K)." },
-    { de: "Einheit Temperatur", en: "Temperature Unit", hex: "0007", meta: 6, name: "temperature_unit",
+    { de: "Einheit Temperatur", en: "Temperature Unit", hex: "0007", meta: 6, name: "unit_temperature",
       info_de: "Anzeigeeinheit für Temperatur. 0 = Celsius (°C), 1 = Fahrenheit (°F).",
       info_en: "Display unit for temperature. 0 = Celsius (°C), 1 = Fahrenheit (°F)." },
-    { de: "Format Uhrzeit", en: "Time Format", hex: "0008", meta: 7, name: "time_format",
+    { de: "Format Uhrzeit", en: "Time Format", hex: "0008", meta: 7, name: "format_time",
       info_de: "Uhrzeitformat wählen. 0 = 24-Stunden-Format, 1 = 12-Stunden-Format (AM/PM).",
       info_en: "Select time format. 0 = 24-hour format, 1 = 12-hour format (AM/PM)." },
-    { de: "Format Datum", en: "Date Format", hex: "0009", meta: 8, name: "date_format",
+    { de: "Format Datum", en: "Date Format", hex: "0009", meta: 8, name: "format_date",
       info_de: "Datumsformat wählen. 0 = TT.MM.JJJJ, 1 = MM/TT/JJJJ.",
       info_en: "Select date format. 0 = DD.MM.YYYY, 1 = MM/DD/YYYY." },
-    { de: "Anzahl Lüfterstufen", en: "Number of Fan Levels", hex: "000A", meta: 9, name: "fan_levels",
+    { de: "Anzahl Lüfterstufen", en: "Number of Fan Levels", hex: "000A", meta: 9, name: "fan_stages_count",
       info_de: "Anzahl der verfügbaren Lüfterstufen eingeben (z. B. 3 für Stufe 1–3).",
       info_en: "Enter number of available fan levels (e.g. 3 for levels 1–3)." },
-    { de: "Anzeige Hauptbildschirm", en: "Main Display", hex: "000B", meta: 10, name: "main_display",
+    { de: "Anzeige Hauptbildschirm", en: "Main Display", hex: "000B", meta: 10, name: "display_main_screen",
       info_de: "Informationen für den Hauptbildschirm festlegen. 0 = Temperatur, 1 = Feuchte, 2 = CO2.",
       info_en: "Define main screen content. 0 = Temperature, 1 = Humidity, 2 = CO2." },
     // Footer Symbols (Rows 9-13)
@@ -460,7 +463,43 @@ const configParametersData = [
       info_en: "Symbol for the fourth footer position. Enter value according to symbol table." },
     { de: "Fußzeile Symbol 5", en: "Footer Symbol 5", hex: "0010", meta: 15, name: "symbol_5_footer",
       info_de: "Symbol für die fünfte Position in der Fußzeile. Wert gemäß Symboltabelle eingeben.",
-      info_en: "Symbol for the fifth footer position. Enter value according to symbol table." }
+      info_en: "Symbol for the fifth footer position. Enter value according to symbol table." },
+    { de: "Konfiguration Eingang 1", en: "Configuration Input 1", hex: "0013", meta: 18, name: "config_input_1",
+      info_de: "Funktion von Eingang 1 festlegen. Wert gemäß Eingangskonfigurationstabelle eingeben.",
+      info_en: "Define function of input 1. Enter value according to input configuration table." },
+    { de: "Konfiguration Eingang 2", en: "Configuration Input 2", hex: "0014", meta: 19, name: "config_input_2",
+      info_de: "Funktion von Eingang 2 festlegen. Wert gemäß Eingangskonfigurationstabelle eingeben.",
+      info_en: "Define function of input 2. Enter value according to input configuration table." },
+    { de: "Zuordnung Lüfterstufen", en: "Assignment Fan-Stages", hex: "0063", meta: 98, name: "fan_stage_assignment",
+      info_de: "Zuordnung der Lüfterstufen zu den Ausgängen konfigurieren. Wert gemäß Zuordnungstabelle eingeben.",
+      info_en: "Configure assignment of fan stages to outputs. Enter value according to assignment table." },
+    { de: "Funktion Regler Heizen", en: "Controller function heating", hex: "006D", meta: 108, name: "function_ctrl_heating",
+      info_de: "Reglerfunktion für den Heizbetrieb festlegen. Wert gemäß Reglerfunktionstabelle eingeben.",
+      info_en: "Define controller function for heating mode. Enter value according to controller function table." },
+    { de: "Funktion Regler Kühlen", en: "Controller function cooling", hex: "006E", meta: 109, name: "function_ctrl_cooling",
+      info_de: "Reglerfunktion für den Kühlbetrieb festlegen. Wert gemäß Reglerfunktionstabelle eingeben.",
+      info_en: "Define controller function for cooling mode. Enter value according to controller function table." },
+    { de: "Schritte Lüfterstufen", en: "Fan stage steps", hex: "006F", meta: 110, name: "fan_stage_steps",
+      info_de: "Schrittweite für die Umschaltung der Lüfterstufen in Prozent festlegen.",
+      info_en: "Define step size for fan stage switching in percent." },
+    { de: "Anzeige Sollwertverstellung", en: "Setpoint adjustment display", hex: "0073", meta: 114, name: "display_setpoint_adj",
+      info_de: "Anzeige der Sollwertverstellung auf dem Display konfigurieren. 0 = deaktiviert, 1 = aktiviert.",
+      info_en: "Configure setpoint adjustment display on screen. 0 = disabled, 1 = enabled." },
+    { de: "Funktion An/Aus Taste", en: "On/Off button function", hex: "0074", meta: 115, name: "function_btn_on_off",
+      info_de: "Funktion der An/Aus-Taste festlegen. 0 = deaktiviert, 1 = aktiviert.",
+      info_en: "Define on/off button function. 0 = disabled, 1 = enabled." },
+    { de: "Wirksinn Relais Heizen", en: "Relay logic heating", hex: "0085", meta: 132, name: "logic_relay_heating",
+      info_de: "Wirksinn des Heizrelais einstellen. 0 = normal (NO), 1 = invertiert (NC).",
+      info_en: "Set heating relay logic. 0 = normal (NO), 1 = inverted (NC)." },
+    { de: "Wirksinn Relais Kühlen", en: "Relay logic cooling", hex: "0086", meta: 133, name: "logic_relay_cooling",
+      info_de: "Wirksinn des Kühlrelais einstellen. 0 = normal (NO), 1 = invertiert (NC).",
+      info_en: "Set cooling relay logic. 0 = normal (NO), 1 = inverted (NC)." },
+    { de: "Wirksinn Analoger Ausgang Heizen", en: "Analog logic heating", hex: "0095", meta: 148, name: "logic_analog_heating",
+      info_de: "Wirksinn des analogen Heizausgangs einstellen. 0 = normal (0–10 V), 1 = invertiert (10–0 V).",
+      info_en: "Set analog heating output logic. 0 = normal (0–10 V), 1 = inverted (10–0 V)." },
+    { de: "Wirksinn Analoger Ausgang Kühlen", en: "Analog logic cooling", hex: "0096", meta: 149, name: "logic_analog_cooling",
+      info_de: "Wirksinn des analogen Kühlausgangs einstellen. 0 = normal (0–10 V), 1 = invertiert (10–0 V).",
+      info_en: "Set analog cooling output logic. 0 = normal (0–10 V), 1 = inverted (10–0 V)." }
 ];
 
 const runtimeParametersData = [
@@ -584,7 +623,7 @@ function renderParameterSection(title, parameters, startIndex) {
             <div class="hex-col">${p.hex}</div>
             <div class="modbus-col">[${p.meta}]</div>
             <div class="input">
-                <input type="number" min="0" max="65535" data-index="${startIndex + index}">
+                <input type="number" min="-32768" max="32767" data-index="${startIndex + index}">
             </div>
             <div class="info-icon">
                 <button onmouseenter="showTooltip(event, '${tooltipText.replace(/'/g, "&apos;")}')" onmouseleave="hideTooltip()">i</button>
@@ -671,7 +710,11 @@ updateInfoPage();
 
 // ==== HEX HELFER ====
 function toHex(value) {
-    let hex = Number(value).toString(16).toUpperCase();
+    let num = Number(value);
+    if (num < 0) {
+        num = (num & 0xFFFF) >>> 0;
+    }
+    let hex = num.toString(16).toUpperCase();
     return hex.padStart(4, "0");
 }
 
@@ -699,7 +742,16 @@ function generateDownlink() {
 }
 
 // ==== EVENT LISTENER ====
-document.addEventListener("input", generateDownlink);
+document.addEventListener("input", function(e) {
+    if (e.target.tagName === 'INPUT' && e.target.type === 'number') {
+        let val = parseInt(e.target.value, 10);
+        if (!isNaN(val)) {
+            if (val > 32767) e.target.value = 32767;
+            else if (val < -32768) e.target.value = -32768;
+        }
+    }
+    generateDownlink();
+});
 
 // ==== TOOLTIP FUNKTIONEN ====
 const tooltip = document.createElement('div');
