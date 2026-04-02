@@ -2,13 +2,16 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Downlink Generator JOY LoRaWAN</title>
 <style>
+    /* Grundlegendes Seitenlayout: Serifenlose Schrift, heller Hintergrund */
     body {
         font-family: Arial, sans-serif;
         margin: 20px;
         background: #f5f5f5;
     }
+    /* Kopfzeile mit Logos, Titel, Sprachumschalter und Burger-Menü (Flexbox) */
     .top-bar {
         display: flex;
         align-items: center;
@@ -19,10 +22,12 @@
         border-radius: 10px;
         justify-content: flex-start;
     }
+    /* Thermokon-Logo links, feste Höhe ohne Flex-Wachstum */
     .logo {
         height: 50px;
         flex: 0 0 auto;
     }
+    /* LoRaWAN-Logo rechts neben dem Titel */
     .logo-right {
         height: 50px;
         flex: 0 0 auto;
@@ -31,12 +36,14 @@
         margin: 0;
         flex: 0 0 auto;
     }
+    /* Hauptcontainer für die Parametertabellen mit abgerundeten Ecken */
     .container {
         background: white;
         padding: 20px;
         border-radius: 10px;
         max-width: 900px;
     }
+    /* Spaltenüberschriften-Zeile (Parameter, Hex, Modbus, Wert, Bereich) */
     .header {
         display: flex;
         font-weight: bold;
@@ -61,16 +68,23 @@
         width: 120px;
         text-align: center;
     }
+    .header-range {
+        width: 90px;
+        text-align: center;
+    }
+    /* Einzelne Parameterzeile als Flex-Row mit vertikaler Zentrierung */
     .row {
         display: flex;
         margin-bottom: 8px;
         align-items: center;
         gap: 10px;
     }
+    /* Parametername-Spalte, nimmt den verfügbaren Platz ein (flex: 1) */
     .topic {
         flex: 1;
         min-width: 200px;
     }
+    /* Hex-Identifier-Spalte: Monospace, blau, zentriert (z.B. 0x0003) */
     .hex-col {
         width: 100px;
         text-align: center;
@@ -78,6 +92,7 @@
         font-weight: bold;
         color: #007bff;
     }
+    /* Modbus-Register-Spalte: Monospace, grün, zentriert (z.B. [2]) */
     .modbus-col {
         width: 100px;
         text-align: center;
@@ -88,10 +103,19 @@
     .input {
         width: 120px;
     }
+    /* Wertebereich-Spalte: zeigt gültigen Min...Max-Bereich in Grau */
+    .range-col {
+        width: 90px;
+        text-align: center;
+        font-family: monospace;
+        font-size: 13px;
+        color: #888;
+    }
     input {
         width: 100%;
         padding: 5px;
     }
+    /* Sticky-Ausgabebereich: bleibt beim Scrollen oben sichtbar */
     .sticky-output {
         position: sticky;
         top: 0;
@@ -100,6 +124,7 @@
         padding: 12px 0 8px 0;
         margin-bottom: 10px;
     }
+    /* Generierter Hex-Downlink-String mit rotem Akzent-Rand links */
     #output {
         margin-top: 0;
         padding: 15px;
@@ -114,6 +139,29 @@
         font-size: 14px;
         line-height: 1.6;
     }
+    /* Ein Parameter-Paar im Downlink-Output (Hex-ID + Wert) */
+    .dl-pair {
+        display: inline;
+        margin-right: 0;
+    }
+    /* Vertikaler Trennstrich zwischen aufeinanderfolgenden Paaren (IBAN-Stil) */
+    .dl-pair + .dl-pair {
+        border-left: 2px solid #ccc;
+        padding-left: 8px;
+        margin-left: 6px;
+    }
+    /* Hex-Identifier im Output: blau, fett, mit gepunkteter Trennung zum Wert */
+    .dl-id {
+        color: #007bff;
+        font-weight: bold;
+        border-right: 1px dotted #bbb;
+        padding-right: 3px;
+        margin-right: 2px;
+    }
+    /* Hex-Wert im Output: schwarz, folgt direkt auf den Identifier */
+    .dl-val {
+        color: #000;
+    }
     button {
         margin-top: 10px;
         padding: 10px;
@@ -123,6 +171,7 @@
         opacity: 0.5;
         cursor: not-allowed;
     }
+    /* Sprachumschalter: wird per margin-left:auto ans rechte Ende der Top-Bar geschoben */
     .language-toggle {
         margin-left: auto;
         display: flex;
@@ -146,6 +195,7 @@
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         transform: translateY(-2px);
     }
+    /* Flaggen-Icons (DE/EN): inaktiv = halbtransparent, aktiv = volle Deckkraft mit Glow */
     .flag {
         opacity: 0.5;
         transition: opacity 0.3s ease;
@@ -154,11 +204,100 @@
         opacity: 1;
         filter: drop-shadow(0 0 3px rgba(0, 123, 255, 0.6));
     }
+    /* Originale Tab-Leiste: versteckt, aber im DOM für ID-Kompatibilität behalten */
     .page-tabs {
+        display: none;
+    }
+    /* Hamburger-Menü Container: position:relative für absolutes Dropdown */
+    .burger-menu {
+        position: relative;
+        flex: 0 0 auto;
+        order: 10;
+    }
+    /* Hamburger-Button: 3 animierte Striche, wird zum X-Icon wenn .open */
+    .burger-btn {
+        background: none;
+        border: 2px solid #d32f2f;
+        border-radius: 8px;
+        width: 42px;
+        height: 42px;
+        cursor: pointer;
         display: flex;
-        gap: 10px;
-        margin-bottom: 20px;
-        justify-content: flex-end;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        padding: 0;
+        margin: 0;
+        transition: all 0.3s ease;
+    }
+    .burger-btn:hover {
+        background: #d32f2f;
+    }
+    .burger-btn span {
+        display: block;
+        width: 20px;
+        height: 2px;
+        background: #d32f2f;
+        border-radius: 2px;
+        transition: all 0.3s ease;
+    }
+    .burger-btn:hover span {
+        background: white;
+    }
+    /* Animation: 3 Striche transformieren sich zu einem X-Symbol beim Öffnen */
+    .burger-btn.open span:nth-child(1) {
+        transform: rotate(45deg) translate(5px, 5px);
+    }
+    .burger-btn.open span:nth-child(2) {
+        opacity: 0;
+    }
+    .burger-btn.open span:nth-child(3) {
+        transform: rotate(-45deg) translate(5px, -5px);
+    }
+    /* Dropdown-Menü: absolut positioniert unter dem Burger-Button */
+    .burger-dropdown {
+        display: none;
+        position: absolute;
+        top: 50px;
+        right: 0;
+        background: white;
+        border: 2px solid #ddd;
+        border-radius: 10px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        z-index: 200;
+        min-width: 220px;
+        overflow: hidden;
+    }
+    .burger-dropdown.open {
+        display: block;
+    }
+    .burger-dropdown .menu-item {
+        display: block;
+        width: 100%;
+        padding: 14px 20px;
+        border: none;
+        background: none;
+        text-align: left;
+        font-size: 15px;
+        font-weight: 600;
+        color: #333;
+        cursor: pointer;
+        text-decoration: none;
+        transition: background 0.2s ease;
+        border-bottom: 1px solid #eee;
+        box-sizing: border-box;
+    }
+    .burger-dropdown .menu-item:last-child {
+        border-bottom: none;
+    }
+    .burger-dropdown .menu-item:hover {
+        background: #f5f5f5;
+        color: #d32f2f;
+    }
+    .burger-dropdown .menu-item.active {
+        color: #d32f2f;
+        background: #fef0f0;
     }
     .page-tab {
         padding: 10px 20px;
@@ -180,18 +319,21 @@
         color: white;
         border-color: #d32f2f;
     }
+    /* Seitenwechsel: nur die aktive Seite (Generator oder Info) wird angezeigt */
     .page {
         display: none;
     }
     .page.active {
         display: block;
     }
+    /* Produktinformations-Seite: weißer Container mit max. 900px Breite */
     .info-content {
         background: white;
         padding: 30px;
         border-radius: 10px;
         max-width: 900px;
     }
+    /* 2-Spalten-Grid für Info-Seite: Bild links, Text rechts */
     .info-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -231,6 +373,7 @@
         font-weight: bold;
         margin-right: 8px;
     }
+    /* Abschnittsüberschrift (z.B. "Laufzeit-Parameter"): roter Rand oben, Flex für Info-Button */
     .section-title {
         margin-top: 50px !important;
         margin-bottom: 8px !important;
@@ -242,40 +385,92 @@
         color: #d32f2f;
         letter-spacing: 0.5px;
         text-transform: capitalize;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    /* Runder Info-Button (SVG "i"-Icon) neben den Abschnittsüberschriften */
+    .section-info-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        border: 2px solid #007bff;
+        background: #e8f0fe;
+        color: #007bff;
+        cursor: help;
+        padding: 0;
+        margin: 0;
+        flex-shrink: 0;
+        transition: all 0.2s ease;
+    }
+    .section-info-btn svg {
+        fill: #007bff;
+        transition: fill 0.2s ease;
+    }
+    .section-info-btn:hover {
+        background: #007bff;
+    }
+    .section-info-btn:hover svg {
+        fill: white;
     }
     .header-info {
         width: 30px;
         text-align: center;
     }
+    /* Beschreibungsspalte pro Zeile: zeigt abgekürzten Info-Text mit Fade-Out */
     .info-icon {
-        width: 30px;
-        text-align: center;
+        width: 180px;
+        text-align: left;
         flex-shrink: 0;
-        margin-left: 15px;
+        margin-left: 5px;
+    }
+    /* Inline-Infotext: kursiv, halbtransparent, mit CSS-Maskierung zum Ausblenden am Rand */
+    .info-text-inline {
+        font-style: italic;
+        opacity: 0.45;
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 180px;
+        cursor: help;
+        display: block;
+        position: relative;
+        -webkit-mask-image: linear-gradient(to right, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 90%);
+        mask-image: linear-gradient(to right, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 90%);
+        transition: opacity 0.2s ease;
+    }
+    .info-text-inline:hover {
+        opacity: 0.7;
     }
     .info-icon button {
-        background: none;
-        border: 1.5px solid #007bff;
+        background: #e8f0fe;
+        border: 2px solid #007bff;
         border-radius: 50%;
         width: 22px;
         height: 22px;
         cursor: pointer;
-        font-size: 11px;
+        font-size: 14px;
         color: #007bff;
-        font-weight: bold;
+        font-weight: 700;
         font-style: italic;
-        font-family: Georgia, serif;
+        font-family: 'Times New Roman', Georgia, serif;
         padding: 0;
         margin: 0;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         transition: all 0.2s ease;
+        text-shadow: 0 0 1px #007bff;
     }
     .info-icon button:hover {
         background: #007bff;
         color: white;
     }
+    /* Globaler Tooltip: folgt dem Mauszeiger, zeigt vollständigen Beschreibungstext */
     .info-tooltip {
         display: none;
         position: fixed;
@@ -295,6 +490,7 @@
     .info-tooltip.visible {
         display: block;
     }
+    /* Download-Button pro Zeile: grüner Kreis mit Pfeil, öffnet PDF-Handbuch */
     .download-icon {
         width: 30px;
         text-align: center;
@@ -323,10 +519,162 @@
         background: #28a745;
         color: white;
     }
+
+    /* ==== RESPONSIVE: Tablet & Smartphone (≤768px) ==== */
+    /* Umstellung auf Card-Layout, versteckte Spaltenheader, größere Touch-Targets */
+    @media (max-width: 768px) {
+        body {
+            margin: 8px;
+        }
+        .top-bar {
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 10px 12px;
+        }
+        .top-bar h1 {
+            font-size: 16px;
+            order: 2;
+            width: 100%;
+            text-align: center;
+        }
+        .logo, .logo-right {
+            height: 32px;
+        }
+        .language-toggle {
+            order: 3;
+            margin-left: 0;
+            width: 100%;
+            justify-content: center;
+        }
+        .language-toggle button {
+            font-size: 18px;
+            padding: 6px 12px;
+        }
+        .burger-dropdown {\n            min-width: 180px;\n        }
+        .sticky-output {
+            padding: 8px 0 6px 0;
+        }
+        .sticky-output h3 {
+            font-size: 14px;
+        }
+        .sticky-output button {
+            font-size: 12px;
+            padding: 8px;
+        }
+        #output {
+            font-size: 12px;
+            padding: 10px;
+        }
+        .container {
+            padding: 10px;
+        }
+        .section-title {
+            font-size: 15px;
+            margin-top: 30px !important;
+        }
+
+        /* Hide table header on mobile */
+        .header {
+            display: none;
+        }
+
+        /* Card layout for rows */
+        .row {
+            flex-wrap: wrap;
+            background: #fafafa;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+            gap: 4px 8px;
+        }
+        .topic {
+            min-width: unset;
+            width: 100%;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+        .info-icon {
+            width: 100%;
+            margin-left: 0;
+        }
+        .info-text-inline {
+            max-width: 100%;
+            -webkit-mask-image: linear-gradient(to right, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 95%);
+            mask-image: linear-gradient(to right, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 95%);
+        }
+        .hex-col, .modbus-col {
+            width: auto;
+            text-align: left;
+            font-size: 12px;
+        }
+        .hex-col::before {
+            content: 'Hex: ';
+            font-weight: normal;
+            color: #888;
+            font-family: Arial, sans-serif;
+        }
+        .modbus-col::before {
+            content: 'Modbus: ';
+            font-weight: normal;
+            color: #888;
+            font-family: Arial, sans-serif;
+        }
+        .range-col {
+            width: auto;
+            text-align: left;
+            font-size: 12px;
+        }
+        .range-col::before {
+            content: '⟹ ';
+            color: #888;
+        }
+        .input {
+            width: 100%;
+        }
+        .input input {
+            font-size: 16px;
+            padding: 8px;
+        }
+        .download-icon {
+            margin-left: auto;
+        }
+
+        /* Info page responsive */
+        .info-content {
+            padding: 15px;
+        }
+        .info-grid {
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        .info-text h2 {
+            font-size: 18px;
+        }
+        .info-text p {
+            font-size: 14px;
+        }
+    }
+
+    /* ==== RESPONSIVE: Extra kleine Bildschirme (≤480px) ==== */
+    @media (max-width: 480px) {
+        .top-bar h1 {
+            font-size: 14px;
+        }
+        .logo, .logo-right {
+            height: 26px;
+        }
+        .dl-pair + .dl-pair {
+            padding-left: 5px;
+            margin-left: 4px;
+        }
+    }
 </style>
 </head>
 <body>
 
+<!-- ==== KOPFZEILE: Logos, Titel, Sprachumschalter und Hamburger-Navigationsmenü ==== -->
 <div class="top-bar">
     <img src="https://www.thermokon.de/typo3conf/ext/tm_thermokon/Resources/Public/Img/thermokon_logo.svg" alt="Thermokon Logo" class="logo">
     <h1 id="mainTitle">Downlink Generator JOY</h1>
@@ -334,19 +682,32 @@
     <div class="language-toggle">
         <button onclick="toggleLanguage()"><span id="langIcon">🌐</span> <span class="flag active" id="deFlag">🇩🇪</span><span class="flag" id="enFlag">🇬🇧</span></button>
     </div>
+    <div class="burger-menu">
+        <button class="burger-btn" onclick="toggleBurgerMenu()">
+            <span></span><span></span><span></span>
+        </button>
+        <div class="burger-dropdown" id="burgerDropdown">
+            <button class="menu-item active" onclick="switchPage('generator')" id="menu-generator">Downlink Generator</button>
+            <button class="menu-item" onclick="switchPage('info')" id="menu-info">Produktinformation</button>
+            <a href="Site 2.html" class="menu-item">Site 2</a>
+        </div>
+    </div>
 </div>
 
+<!-- hidden, kept for compatibility -->
 <div class="page-tabs">
     <button class="page-tab active" onclick="switchPage('generator')" id="tab-generator">Downlink Generator</button>
     <button class="page-tab" onclick="switchPage('info')" id="tab-info">Produktinformation</button>
     <a href="Site 2.html" class="page-tab">Site 2</a>
 </div>
 
+<!-- ==== GENERATOR-SEITE: Sticky Downlink-Ausgabe oben, darunter die Parametertabellen ==== -->
 <div id="generator" class="page active">
 <div class="sticky-output">
 <h3 id="outputTitle" style="margin:0 0 6px 0;">Generierter Downlink</h3>
 <div id="output">(kein Wert gesetzt)</div>
 <button onclick="copyToClipboard()" id="copyBtn" disabled>In Zwischenablage kopieren</button>
+<button onclick="clearAllInputs()" id="clearBtn" style="margin-left: 10px; background: #d32f2f; color: white; border: none; border-radius: 5px;">Alle Werte löschen</button>
 </div>
 
 <div class="container">
@@ -356,6 +717,7 @@
 </div>
 </div>
 
+<!-- ==== PRODUKTINFORMATIONS-SEITE: 2-Spalten-Layout mit Bild und Feature-Liste ==== -->
 <div id="info" class="page">
 <div class="info-content">
     <div class="info-grid">
@@ -383,8 +745,10 @@
 
 <script>
 // ==== SPRACH-SYSTEM ====
+// Aktuelle Sprache: 'de' (Deutsch) oder 'en' (Englisch), wird beim Klick auf Flagge gewechselt
 let currentLanguage = 'de';
 
+// Übersetzungsobjekt: enthält alle UI-Texte in beiden Sprachen, aufgerufen über t('key')
 const translations = {
     de: {
         mainTitle: 'Downlink Generator JOY',
@@ -398,6 +762,12 @@ const translations = {
         noValue: '(kein Wert gesetzt)',
         copyBtn: 'In Zwischenablage kopieren',
         copied: 'Downlink kopiert!',
+        clearBtn: 'Alle Werte löschen',
+        descHeader: 'Beschreibung',
+        rangeHeader: 'Bereich',
+        runtimeInfo: 'Laufzeit-Parameter werden zur Laufzeit des Geräts gesetzt und können jederzeit per Downlink überschrieben werden. Sie beeinflussen den aktuellen Betriebszustand (z. B. Sollwerte, Uhrzeit, Präsenz).',
+        configInfo: 'Konfigurationsparameter definieren die Grundeinstellungen des Geräts wie Sprache, Sensoroffsets, Display-Anzeige und Reglerverhalten. Änderungen werden dauerhaft gespeichert.',
+        lorawanInfo: 'LoRaWAN-Parameter steuern die Funkverbindung des Sensors, z. B. Sendeintervall (Heartbeat), Bestätigungsmodus und Datenrate. Diese Einstellungen beeinflussen Reichweite und Batterielebensdauer.',
         tabGenerator: 'Downlink Generator',
         tabInfo: 'Produktinformation',
         langBtn: 'EN'
@@ -414,203 +784,232 @@ const translations = {
         noValue: '(no value set)',
         copyBtn: 'Copy to Clipboard',
         copied: 'Downlink copied!',
+        clearBtn: 'Clear All Values',
+        descHeader: 'Description',
+        rangeHeader: 'Range',
+        runtimeInfo: 'Runtime parameters are set during device operation and can be overwritten at any time via downlink. They affect the current operating state (e.g. setpoints, time, presence).',
+        configInfo: 'Configuration parameters define the basic device settings such as language, sensor offsets, display content and controller behavior. Changes are stored permanently.',
+        lorawanInfo: 'LoRaWAN parameters control the sensor\'s radio connection, e.g. transmission interval (heartbeat), confirmation mode and data rate. These settings affect range and battery life.',
         tabGenerator: 'Downlink Generator',
         tabInfo: 'Product Information',
         langBtn: 'DE'
     }
 };
 
+// ==== KONFIGURATIONSPARAMETER (26 Stück) ====
+// Dauerhafte Geräteeinstellungen: Sprache, Offsets, Display, Regler, Ventile, Relay-Logik
 const configParametersData = [
     { de: "Typ 6-Wege Ventil", en: "Type 6 Way-Valve", hex: "0003", meta: 2, name: "type_6_way_valve",
       info_de: "Typ des 6-Wege Ventils konfigurieren. Wert gemäß Ventiltypentabelle eingeben.",
-      info_en: "Configure 6-way valve type. Enter value according to valve type table." },
+      info_en: "Configure 6-way valve type. Enter value according to valve type table.", range: "0...6" },
     { de: "Vorgabe Sprache", en: "Language Setting", hex: "0004", meta: 3, name: "language",
       info_de: "Gerätesprache einstellen. 0 = Deutsch, 1 = Englisch, 2 = Französisch.",
-      info_en: "Set device language. 0 = German, 1 = English, 2 = French." },
+      info_en: "Set device language. 0 = German, 1 = English, 2 = French.", range: "0...2" },
     { de: "Offset interner Sensor", en: "Internal Sensor Offset", hex: "0005", meta: 4, name: "offset_internal",
       info_de: "Korrekturwert für den internen Sensor in 0,1 K Schritten (z. B. 5 = +0,5 K).",
-      info_en: "Correction value for the internal sensor in 0.1 K steps (e.g. 5 = +0.5 K)." },
+      info_en: "Correction value for the internal sensor in 0.1 K steps (e.g. 5 = +0.5 K).", range: "-30...+30" },
     { de: "Offset externer Sensor", en: "External Sensor Offset", hex: "0006", meta: 5, name: "offset_external",
       info_de: "Korrekturwert für den externen Sensor in 0,1 K Schritten (z. B. -3 = -0,3 K).",
-      info_en: "Correction value for the external sensor in 0.1 K steps (e.g. -3 = -0.3 K)." },
+      info_en: "Correction value for the external sensor in 0.1 K steps (e.g. -3 = -0.3 K).", range: "-30...+30" },
     { de: "Einheit Temperatur", en: "Temperature Unit", hex: "0007", meta: 6, name: "unit_temperature",
       info_de: "Anzeigeeinheit für Temperatur. 0 = Celsius (°C), 1 = Fahrenheit (°F).",
-      info_en: "Display unit for temperature. 0 = Celsius (°C), 1 = Fahrenheit (°F)." },
+      info_en: "Display unit for temperature. 0 = Celsius (°C), 1 = Fahrenheit (°F).", range: "0...1" },
     { de: "Format Uhrzeit", en: "Time Format", hex: "0008", meta: 7, name: "format_time",
       info_de: "Uhrzeitformat wählen. 0 = 24-Stunden-Format, 1 = 12-Stunden-Format (AM/PM).",
-      info_en: "Select time format. 0 = 24-hour format, 1 = 12-hour format (AM/PM)." },
+      info_en: "Select time format. 0 = 24-hour format, 1 = 12-hour format (AM/PM).", range: "0...1" },
     { de: "Format Datum", en: "Date Format", hex: "0009", meta: 8, name: "format_date",
       info_de: "Datumsformat wählen. 0 = TT.MM.JJJJ, 1 = MM/TT/JJJJ.",
-      info_en: "Select date format. 0 = DD.MM.YYYY, 1 = MM/DD/YYYY." },
+      info_en: "Select date format. 0 = DD.MM.YYYY, 1 = MM/DD/YYYY.", range: "0...1" },
     { de: "Anzahl Lüfterstufen", en: "Number of Fan Levels", hex: "000A", meta: 9, name: "fan_stages_count",
       info_de: "Anzahl der verfügbaren Lüfterstufen eingeben (z. B. 3 für Stufe 1–3).",
-      info_en: "Enter number of available fan levels (e.g. 3 for levels 1–3)." },
+      info_en: "Enter number of available fan levels (e.g. 3 for levels 1–3).", range: "0...5" },
     { de: "Anzeige Hauptbildschirm", en: "Main Display", hex: "000B", meta: 10, name: "display_main_screen",
       info_de: "Informationen für den Hauptbildschirm festlegen. 0 = Temperatur, 1 = Feuchte, 2 = CO2.",
-      info_en: "Define main screen content. 0 = Temperature, 1 = Humidity, 2 = CO2." },
+      info_en: "Define main screen content. 0 = Temperature, 1 = Humidity, 2 = CO2.", range: "0...2" },
     // Footer Symbols (Rows 9-13)
     { de: "Fußzeile Symbol 1", en: "Footer Symbol 1", hex: "000C", meta: 11, name: "symbol_1_footer",
       info_de: "Symbol für die erste Position in der Fußzeile. Wert gemäß Symboltabelle eingeben.",
-      info_en: "Symbol for the first footer position. Enter value according to symbol table." },
+      info_en: "Symbol for the first footer position. Enter value according to symbol table.", range: "0...15" },
     { de: "Fußzeile Symbol 2", en: "Footer Symbol 2", hex: "000D", meta: 12, name: "symbol_2_footer",
       info_de: "Symbol für die zweite Position in der Fußzeile. Wert gemäß Symboltabelle eingeben.",
-      info_en: "Symbol for the second footer position. Enter value according to symbol table." },
+      info_en: "Symbol for the second footer position. Enter value according to symbol table.", range: "0...15" },
     { de: "Fußzeile Symbol 3", en: "Footer Symbol 3", hex: "000E", meta: 13, name: "symbol_3_footer",
       info_de: "Symbol für die dritte Position in der Fußzeile. Wert gemäß Symboltabelle eingeben.",
-      info_en: "Symbol for the third footer position. Enter value according to symbol table." },
+      info_en: "Symbol for the third footer position. Enter value according to symbol table.", range: "0...15" },
     { de: "Fußzeile Symbol 4", en: "Footer Symbol 4", hex: "000F", meta: 14, name: "symbol_4_footer",
       info_de: "Symbol für die vierte Position in der Fußzeile. Wert gemäß Symboltabelle eingeben.",
-      info_en: "Symbol for the fourth footer position. Enter value according to symbol table." },
+      info_en: "Symbol for the fourth footer position. Enter value according to symbol table.", range: "0...15" },
     { de: "Fußzeile Symbol 5", en: "Footer Symbol 5", hex: "0010", meta: 15, name: "symbol_5_footer",
       info_de: "Symbol für die fünfte Position in der Fußzeile. Wert gemäß Symboltabelle eingeben.",
-      info_en: "Symbol for the fifth footer position. Enter value according to symbol table." },
+      info_en: "Symbol for the fifth footer position. Enter value according to symbol table.", range: "0...15" },
     { de: "Konfiguration Eingang 1", en: "Configuration Input 1", hex: "0013", meta: 18, name: "config_input_1",
       info_de: "Funktion von Eingang 1 festlegen. Wert gemäß Eingangskonfigurationstabelle eingeben.",
-      info_en: "Define function of input 1. Enter value according to input configuration table." },
+      info_en: "Define function of input 1. Enter value according to input configuration table.", range: "0...10" },
     { de: "Konfiguration Eingang 2", en: "Configuration Input 2", hex: "0014", meta: 19, name: "config_input_2",
       info_de: "Funktion von Eingang 2 festlegen. Wert gemäß Eingangskonfigurationstabelle eingeben.",
-      info_en: "Define function of input 2. Enter value according to input configuration table." },
+      info_en: "Define function of input 2. Enter value according to input configuration table.", range: "0...10" },
     { de: "Zuordnung Lüfterstufen", en: "Assignment Fan-Stages", hex: "0063", meta: 98, name: "fan_stage_assignment",
       info_de: "Zuordnung der Lüfterstufen zu den Ausgängen konfigurieren. Wert gemäß Zuordnungstabelle eingeben.",
-      info_en: "Configure assignment of fan stages to outputs. Enter value according to assignment table." },
+      info_en: "Configure assignment of fan stages to outputs. Enter value according to assignment table.", range: "0...5" },
     { de: "Funktion Regler Heizen", en: "Controller function heating", hex: "006D", meta: 108, name: "function_ctrl_heating",
       info_de: "Reglerfunktion für den Heizbetrieb festlegen. Wert gemäß Reglerfunktionstabelle eingeben.",
-      info_en: "Define controller function for heating mode. Enter value according to controller function table." },
+      info_en: "Define controller function for heating mode. Enter value according to controller function table.", range: "0...3" },
     { de: "Funktion Regler Kühlen", en: "Controller function cooling", hex: "006E", meta: 109, name: "function_ctrl_cooling",
       info_de: "Reglerfunktion für den Kühlbetrieb festlegen. Wert gemäß Reglerfunktionstabelle eingeben.",
-      info_en: "Define controller function for cooling mode. Enter value according to controller function table." },
+      info_en: "Define controller function for cooling mode. Enter value according to controller function table.", range: "0...3" },
     { de: "Schritte Lüfterstufen", en: "Fan stage steps", hex: "006F", meta: 110, name: "fan_stage_steps",
       info_de: "Schrittweite für die Umschaltung der Lüfterstufen in Prozent festlegen.",
-      info_en: "Define step size for fan stage switching in percent." },
+      info_en: "Define step size for fan stage switching in percent.", range: "1...50" },
     { de: "Anzeige Sollwertverstellung", en: "Setpoint adjustment display", hex: "0073", meta: 114, name: "display_setpoint_adj",
       info_de: "Anzeige der Sollwertverstellung auf dem Display konfigurieren. 0 = deaktiviert, 1 = aktiviert.",
-      info_en: "Configure setpoint adjustment display on screen. 0 = disabled, 1 = enabled." },
+      info_en: "Configure setpoint adjustment display on screen. 0 = disabled, 1 = enabled.", range: "0...1" },
     { de: "Funktion An/Aus Taste", en: "On/Off button function", hex: "0074", meta: 115, name: "function_btn_on_off",
       info_de: "Funktion der An/Aus-Taste festlegen. 0 = deaktiviert, 1 = aktiviert.",
-      info_en: "Define on/off button function. 0 = disabled, 1 = enabled." },
+      info_en: "Define on/off button function. 0 = disabled, 1 = enabled.", range: "0...1" },
     { de: "Wirksinn Relais Heizen", en: "Relay logic heating", hex: "0085", meta: 132, name: "logic_relay_heating",
       info_de: "Wirksinn des Heizrelais einstellen. 0 = normal (NO), 1 = invertiert (NC).",
-      info_en: "Set heating relay logic. 0 = normal (NO), 1 = inverted (NC)." },
+      info_en: "Set heating relay logic. 0 = normal (NO), 1 = inverted (NC).", range: "0...1" },
     { de: "Wirksinn Relais Kühlen", en: "Relay logic cooling", hex: "0086", meta: 133, name: "logic_relay_cooling",
       info_de: "Wirksinn des Kühlrelais einstellen. 0 = normal (NO), 1 = invertiert (NC).",
-      info_en: "Set cooling relay logic. 0 = normal (NO), 1 = inverted (NC)." },
+      info_en: "Set cooling relay logic. 0 = normal (NO), 1 = inverted (NC).", range: "0...1" },
     { de: "Wirksinn Analoger Ausgang Heizen", en: "Analog logic heating", hex: "0095", meta: 148, name: "logic_analog_heating",
       info_de: "Wirksinn des analogen Heizausgangs einstellen. 0 = normal (0–10 V), 1 = invertiert (10–0 V).",
-      info_en: "Set analog heating output logic. 0 = normal (0–10 V), 1 = inverted (10–0 V)." },
+      info_en: "Set analog heating output logic. 0 = normal (0–10 V), 1 = inverted (10–0 V).", range: "0...1" },
     { de: "Wirksinn Analoger Ausgang Kühlen", en: "Analog logic cooling", hex: "0096", meta: 149, name: "logic_analog_cooling",
       info_de: "Wirksinn des analogen Kühlausgangs einstellen. 0 = normal (0–10 V), 1 = invertiert (10–0 V).",
-      info_en: "Set analog cooling output logic. 0 = normal (0–10 V), 1 = inverted (10–0 V)." }
+      info_en: "Set analog cooling output logic. 0 = normal (0–10 V), 1 = inverted (10–0 V).", range: "0...1" }
 ];
 
+// ==== LAUFZEIT-PARAMETER (20 Stück) ====
+// Betriebsparameter die jederzeit per Downlink geändert werden können (Sollwerte, Zeit, Präsenz)
 const runtimeParametersData = [
     // Setpoint Parameters (Rows 14-15)
     { de: "Basissollwert", en: "Base Setpoint", hex: "0100", meta: 255, name: "setpoint_base",
       info_de: "Gewünschten Basissollwert in 0,1 K Schritten eingeben (z. B. 210 = 21,0 °C).",
-      info_en: "Enter desired base setpoint in 0.1 K steps (e.g. 210 = 21.0 °C)." },
+      info_en: "Enter desired base setpoint in 0.1 K steps (e.g. 210 = 21.0 °C).", range: "50...350" },
     { de: "Sollwert Offset", en: "Setpoint Offset", hex: "0101", meta: 256, name: "setpoint_offset",
       info_de: "Offset zum Basissollwert in 0,1 K Schritten (z. B. 10 = +1,0 K).",
-      info_en: "Offset to base setpoint in 0.1 K steps (e.g. 10 = +1.0 K)." },
+      info_en: "Offset to base setpoint in 0.1 K steps (e.g. 10 = +1.0 K).", range: "-30...+30" },
     // Presence & Override (Rows 16-19)
     { de: "Vorgabe Präsenz", en: "Presence Setting", hex: "0102", meta: 257, name: "presence_overwrite",
       info_de: "Präsenzzustand überschreiben. 0 = abwesend, 1 = anwesend, 2 = freigegeben (automatisch).",
-      info_en: "Override presence state. 0 = absent, 1 = present, 2 = released (automatic)." },
+      info_en: "Override presence state. 0 = absent, 1 = present, 2 = released (automatic).", range: "0...2" },
     { de: "Vorgabe Taupunkt", en: "Dew Point Setting", hex: "0103", meta: 258, name: "dewpoint_overwrite",
       info_de: "Taupunktsperre überschreiben. 0 = keine Sperre, 1 = Taupunkt erkannt (Sperre aktiv).",
-      info_en: "Override dew point lock. 0 = no lock, 1 = dew point detected (lock active)." },
+      info_en: "Override dew point lock. 0 = no lock, 1 = dew point detected (lock active).", range: "0...1" },
     { de: "Vorgabe Fensterkontakt/Energiesperre", en: "Window Contact/Energy Lock", hex: "0104", meta: 259, name: "windowcontact_overwrite",
       info_de: "Fensterkontaktzustand überschreiben. 0 = Fenster geschlossen, 1 = Fenster offen (Energiesperre).",
-      info_en: "Override window contact state. 0 = window closed, 1 = window open (energy lock)." },
+      info_en: "Override window contact state. 0 = window closed, 1 = window open (energy lock).", range: "0...1" },
     { de: "Vorgabe Change-Over", en: "Change-Over Setting", hex: "0105", meta: 260, name: "changeover_overwrite",
       info_de: "Betriebsart überschreiben. 0 = Kühlen, 1 = Heizen, 2 = freigegeben (automatisch).",
-      info_en: "Override operating mode. 0 = cooling, 1 = heating, 2 = released (automatic)." },
+      info_en: "Override operating mode. 0 = cooling, 1 = heating, 2 = released (automatic).", range: "0...2" },
     // Device Control (Rows 20-22)
     { de: "Gerät Ein/Standby (Aus)", en: "Device On/Standby (Off)", hex: "0106", meta: 261, name: "standby",
       info_de: "Gerätestatus setzen. 0 = Standby (Aus), 1 = Ein (normaler Betrieb).",
-      info_en: "Set device status. 0 = Standby (Off), 1 = On (normal operation)." },
+      info_en: "Set device status. 0 = Standby (Off), 1 = On (normal operation).", range: "0...1" },
     { de: "Freigabe Tasten", en: "Button Enable", hex: "0107", meta: 262, name: "button_enable",
       info_de: "Tastensperrung einstellen. 0 = alle Tasten gesperrt, 1 = alle Tasten freigegeben.",
-      info_en: "Set button lock. 0 = all buttons locked, 1 = all buttons enabled." },
+      info_en: "Set button lock. 0 = all buttons locked, 1 = all buttons enabled.", range: "0...1" },
     { de: "Vorgabe Alarm", en: "Alarm Setting", hex: "0108", meta: 263, name: "alarm",
       info_de: "Alarmzustand setzen. 0 = kein Alarm, 1 = Alarm aktiv.",
-      info_en: "Set alarm state. 0 = no alarm, 1 = alarm active." },
+      info_en: "Set alarm state. 0 = no alarm, 1 = alarm active.", range: "0...1" },
     // Time/Date Parameters (Rows 23-27)
     { de: "Uhrzeit Stunde", en: "Time Hour", hex: "0109", meta: 264, name: "hour",
       info_de: "Aktuelle Stunde eintragen (0–23).",
-      info_en: "Enter current hour (0–23)." },
+      info_en: "Enter current hour (0–23).", range: "0...23" },
     { de: "Uhrzeit Minute", en: "Time Minute", hex: "010A", meta: 265, name: "minute",
       info_de: "Aktuelle Minute eintragen (0–59).",
-      info_en: "Enter current minute (0–59)." },
+      info_en: "Enter current minute (0–59).", range: "0...59" },
     { de: "Datum Tag", en: "Date Day", hex: "010B", meta: 266, name: "day",
       info_de: "Aktuellen Tag eintragen (1–31).",
-      info_en: "Enter current day (1–31)." },
+      info_en: "Enter current day (1–31).", range: "1...31" },
     { de: "Datum Monat", en: "Date Month", hex: "010C", meta: 267, name: "month",
       info_de: "Aktuellen Monat eintragen (1–12).",
-      info_en: "Enter current month (1–12)." },
+      info_en: "Enter current month (1–12).", range: "1...12" },
     { de: "Datum Jahr", en: "Date Year", hex: "010D", meta: 268, name: "year",
       info_de: "Aktuelles Jahr eintragen (z. B. 2026).",
-      info_en: "Enter current year (e.g. 2026)." },
+      info_en: "Enter current year (e.g. 2026).", range: "2000...2099" },
     // Controller & Output Settings (Rows 28-33)
     { de: "Vorgabe Regler", en: "Controller Setting", hex: "010E", meta: 269, name: "overwrite_controller",
       info_de: "Reglermodus überschreiben. 0 = freigegeben (automatisch), 1 = manuell übersteuert.",
-      info_en: "Override controller mode. 0 = released (automatic), 1 = manually overridden." },
+      info_en: "Override controller mode. 0 = released (automatic), 1 = manually overridden.", range: "0...1" },
     { de: "Vorgabe Lüfterstufe", en: "Fan Level Setting", hex: "010F", meta: 270, name: "fan_level_setting",
       info_de: "Lüfterstufe manuell vorgeben. 0 = Automatik, 1–5 = manuelle Stufe.",
-      info_en: "Manually set fan level. 0 = automatic, 1–5 = manual level." },
+      info_en: "Manually set fan level. 0 = automatic, 1–5 = manual level.", range: "0...5" },
     { de: "Vorgabe Ausgang Heizen", en: "Heating Output Setting", hex: "0110", meta: 271, name: "heating_output_setting",
       info_de: "Heizausgang manuell vorgeben in % (0–100). 0 = aus, 100 = volle Leistung.",
-      info_en: "Manually set heating output in % (0–100). 0 = off, 100 = full power." },
+      info_en: "Manually set heating output in % (0–100). 0 = off, 100 = full power.", range: "0...100" },
     { de: "Vorgabe Ausgang Kühlen", en: "Cooling Output Setting", hex: "0111", meta: 272, name: "cooling_output_setting",
       info_de: "Kühlausgang manuell vorgeben in % (0–100). 0 = aus, 100 = volle Leistung.",
-      info_en: "Manually set cooling output in % (0–100). 0 = off, 100 = full power." },
+      info_en: "Manually set cooling output in % (0–100). 0 = off, 100 = full power.", range: "0...100" },
     { de: "Vorgabe Ausgang 6-Wegeventil", en: "6-Way Valve Output Setting", hex: "0112", meta: 273, name: "valve_6way_output_setting",
       info_de: "Stellung des 6-Wegeventils vorgeben in % (0–100).",
-      info_en: "Set 6-way valve position in % (0–100)." },
+      info_en: "Set 6-way valve position in % (0–100).", range: "0...100" },
     { de: "Vorgabe ECO-Modus Übersteuern", en: "ECO Mode Override", hex: "0111", meta: 274, name: "eco_mode_override",
       info_de: "ECO-Modus übersteuern. 0 = ECO-Modus inaktiv, 1 = ECO-Modus erzwungen.",
-      info_en: "Override ECO mode. 0 = ECO mode inactive, 1 = ECO mode forced." }
+      info_en: "Override ECO mode. 0 = ECO mode inactive, 1 = ECO mode forced.", range: "0...1" }
 ];
 
+// ==== LORAWAN-PARAMETER (4 Stück) ====
+// Funkverbindungs-Einstellungen: Heartbeat-Intervall, Bestätigungsmodus, ADR, Datenrate
 const lorawanParametersData = [
     { de: "Heartbeat", en: "Heartbeat", hex: "C106", meta: "n.V.",
       info_de: "Heartbeat-Intervall in Minuten eintragen (z. B. 60 = alle 60 Minuten).",
-      info_en: "Enter heartbeat interval in minutes (e.g. 60 = every 60 minutes)." },
+      info_en: "Enter heartbeat interval in minutes (e.g. 60 = every 60 minutes).", range: "1...1440" },
     { de: "Confirmation", en: "Confirmation", hex: "C21D", meta: "n.V.",
       info_de: "Bestätigungsmodus aktivieren. 0 = unbestätigt (Unconfirmed), 1 = bestätigt (Confirmed).",
-      info_en: "Enable confirmation mode. 0 = unconfirmed, 1 = confirmed." },
+      info_en: "Enable confirmation mode. 0 = unconfirmed, 1 = confirmed.", range: "0...1" },
     { de: "ADR", en: "ADR", hex: "C217", meta: "n.V.",
       info_de: "Adaptive Data Rate aktivieren. 0 = ADR deaktiviert, 1 = ADR aktiviert.",
-      info_en: "Enable Adaptive Data Rate. 0 = ADR disabled, 1 = ADR enabled." },
+      info_en: "Enable Adaptive Data Rate. 0 = ADR disabled, 1 = ADR enabled.", range: "0...1" },
     { de: "Data Rate", en: "Data Rate", hex: "C218", meta: "n.V.",
       info_de: "LoRaWAN Datenrate manuell einstellen (0–5, DR0 = SF12, DR5 = SF7).",
-      info_en: "Manually set LoRaWAN data rate (0–5, DR0 = SF12, DR5 = SF7)." }
+      info_en: "Manually set LoRaWAN data rate (0–5, DR0 = SF12, DR5 = SF7).", range: "0...5" }
 ];
 
+// Hilfsfunktion: gibt den übersetzten Text für den aktuellen Sprachmodus zurück
 function t(key) {
     return translations[currentLanguage][key] || key;
 }
 
-function renderParameterSection(title, parameters, startIndex) {
+// Rendert einen kompletten Parameterabschnitt: Überschrift mit Info-Button, Header-Zeile und alle Parameterzeilen
+function renderParameterSection(title, parameters, startIndex, infoKey) {
     const container = document.getElementById("topicContainer");
     
-    // Section Titel
+    // Section Titel mit optionalem SVG-Info-Button für Abschnitts-Tooltip
     const sectionTitle = document.createElement("h3");
-    sectionTitle.textContent = title;
     sectionTitle.className = "section-title";
+    const titleText = document.createElement("span");
+    titleText.textContent = title;
+    sectionTitle.appendChild(titleText);
+    
+    if (infoKey) {
+        const infoBtn = document.createElement("span");
+        infoBtn.className = "section-info-btn";
+        infoBtn.innerHTML = '<svg viewBox="0 0 20 24" width="12" height="14"><circle cx="10" cy="3.5" r="2.5"/><rect x="7.5" y="9" width="5" height="12" rx="1.5"/></svg>';
+        const infoText = t(infoKey);
+        infoBtn.addEventListener('mouseenter', function(e) { showTooltip(e, infoText); });
+        infoBtn.addEventListener('mouseleave', hideTooltip);
+        sectionTitle.appendChild(infoBtn);
+    }
     container.appendChild(sectionTitle);
     
+    // Spaltenüberschriften erstellen (auf Mobile per CSS ausgeblendet)
     // Header
     const header = document.createElement("div");
     header.className = "header";
     header.innerHTML = `
         <div class="header-param">${t('paramColumn')}</div>
+        <div style="width:180px;margin-left:5px;">${t('descHeader')}</div>
         <div class="header-hex">Identifier Hex</div>
         <div class="header-modbus">Register Modbus</div>
         <div class="header-value">${t('valueHeader')}</div>
-        <div class="header-info"></div>
+        <div class="header-range">${t('rangeHeader')}</div>
         <div class="header-info"></div>
     `;
     container.appendChild(header);
     
+    // Zeilen generieren: jede Zeile enthält Name, Beschreibung, Hex-ID, Modbus, Input, Bereich, Download
     // Rows
     parameters.forEach((p, index) => {
         const row = document.createElement("div");
@@ -620,14 +1019,15 @@ function renderParameterSection(title, parameters, startIndex) {
         const tooltipText = currentLanguage === 'de' ? (p.info_de || '') : (p.info_en || '');
         row.innerHTML = `
             <div class="topic">${paramName}</div>
+            <div class="info-icon">
+                <span class="info-text-inline" onmouseenter="showTooltip(event, '${tooltipText.replace(/'/g, "&apos;")}')" onmouseleave="hideTooltip()">${tooltipText}</span>
+            </div>
             <div class="hex-col">${p.hex}</div>
             <div class="modbus-col">[${p.meta}]</div>
             <div class="input">
                 <input type="number" min="-32768" max="32767" data-index="${startIndex + index}">
             </div>
-            <div class="info-icon">
-                <button onmouseenter="showTooltip(event, '${tooltipText.replace(/'/g, "&apos;")}')" onmouseleave="hideTooltip()">i</button>
-            </div>
+            <div class="range-col">${p.range || ''}</div>
             <div class="download-icon">
                 <button onclick="downloadParameter(${startIndex + index})" title="Download">&#x2193;</button>
             </div>
@@ -637,16 +1037,20 @@ function renderParameterSection(title, parameters, startIndex) {
     });
 }
 
+// Baut die gesamte Benutzeroberfläche neu auf: aktualisiert Texte, Flaggen und alle 3 Parameterabschnitte
 function renderUI() {
     const container = document.getElementById("topicContainer");
     container.innerHTML = '';
     document.getElementById('mainTitle').textContent = t('mainTitle');
     document.getElementById('outputTitle').textContent = t('outputTitle');
     document.getElementById('copyBtn').textContent = t('copyBtn');
+    document.getElementById('clearBtn').textContent = t('clearBtn');
     
     // Update Tab Labels
     document.getElementById('tab-generator').textContent = t('tabGenerator');
     document.getElementById('tab-info').textContent = t('tabInfo');
+    document.getElementById('menu-generator').textContent = t('tabGenerator');
+    document.getElementById('menu-info').textContent = t('tabInfo');
     
     // Update Flaggen
     if (currentLanguage === 'de') {
@@ -657,27 +1061,37 @@ function renderUI() {
         document.getElementById('enFlag').classList.add('active');
     }
     
-    renderParameterSection(t('runtimeParam'), runtimeParametersData, 0);
-    renderParameterSection(t('configParam'), configParametersData, runtimeParametersData.length);
-    renderParameterSection(t('lorawanParam'), lorawanParametersData, runtimeParametersData.length + configParametersData.length);
+    // Alle 3 Abschnitte rendern: Laufzeit (Index 0), Konfiguration, LoRaWAN
+    renderParameterSection(t('runtimeParam'), runtimeParametersData, 0, 'runtimeInfo');
+    renderParameterSection(t('configParam'), configParametersData, runtimeParametersData.length, 'configInfo');
+    renderParameterSection(t('lorawanParam'), lorawanParametersData, runtimeParametersData.length + configParametersData.length, 'lorawanInfo');
     document.getElementById("output").innerText = t('noValue');
 }
 
+// Sprache umschalten zwischen DE und EN, danach komplettes UI und Info-Seite neu rendern
 function toggleLanguage() {
     currentLanguage = currentLanguage === 'de' ? 'en' : 'de';
     renderUI();
     updateInfoPage();
 }
 
-// ==== PAGE SWITCHING ====
+// ==== SEITENWECHSEL (Generator / Produktinfo) ====
+// Deaktiviert alle Seiten und Tabs, aktiviert die gewählte, synchronisiert Burger-Menü
 function switchPage(page) {
     // Hide all pages
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.page-tab').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
     
     // Show selected page
     document.getElementById(page).classList.add('active');
     document.getElementById('tab-' + page).classList.add('active');
+    if (document.getElementById('menu-' + page)) {
+        document.getElementById('menu-' + page).classList.add('active');
+    }
+    
+    // Close burger menu
+    closeBurgerMenu();
     
     // Re-render if switching to generator
     if (page === 'generator') {
@@ -685,7 +1099,30 @@ function switchPage(page) {
     }
 }
 
-// ==== UPDATE INFO PAGE WITH LANGUAGE ====
+// Burger-Menü öffnen/schließen: toggled CSS-Klasse 'open' auf Dropdown und Button
+function toggleBurgerMenu() {
+    const dropdown = document.getElementById('burgerDropdown');
+    const btn = document.querySelector('.burger-btn');
+    dropdown.classList.toggle('open');
+    btn.classList.toggle('open');
+}
+
+// Burger-Menü schließen: entfernt 'open' von Dropdown und setzt Button-Animation zurück
+function closeBurgerMenu() {
+    document.getElementById('burgerDropdown').classList.remove('open');
+    document.querySelector('.burger-btn').classList.remove('open');
+}
+
+// Click-Außerhalb: schließt das Burger-Menü wenn irgendwo anders auf die Seite geklickt wird
+// Close burger menu when clicking outside
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.burger-menu')) {
+        closeBurgerMenu();
+    }
+});
+
+// ==== INFO-SEITE SPRACHAKTUALISIERUNG ====
+// Aktualisiert Titel, Beschreibungstext und Feature-Liste der Produktinfo-Seite
 function updateInfoPage() {
     if (currentLanguage === 'de') {
         document.getElementById('infoTitle').textContent = 'LoRaWAN Sensor - Thermokon JOY';
@@ -700,15 +1137,18 @@ function updateInfoPage() {
     }
 }
 
+// Feature-Liste als <li>-Elemente in die Info-Seite einfügen
 function updateFeatures(features) {
     const featuresList = document.getElementById('infoFeatures');
     featuresList.innerHTML = features.map(f => `<li>${f}</li>`).join('');
 }
 
+// Initiales Rendering beim Seitenaufruf
 renderUI();
 updateInfoPage();
 
-// ==== HEX HELFER ====
+// ==== HEX-KONVERTIERUNG ====
+// Wandelt einen Dezimalwert (inkl. negative via 2er-Komplement) in 4-stelligen Hex-String um
 function toHex(value) {
     let num = Number(value);
     if (num < 0) {
@@ -718,9 +1158,11 @@ function toHex(value) {
     return hex.padStart(4, "0");
 }
 
-// ==== DOWNLINK GENERIEREN ====
+// ==== DOWNLINK-STRING GENERIEREN ====
+// Liest alle gefüllten Eingabefelder, baut Roh-Hex-String und farbiges HTML-Output (max. 10 Parameter)
 function generateDownlink() {
-    let result = "";
+    let rawResult = "";
+    let htmlResult = "";
     let count = 0;
     const allParameters = [...runtimeParametersData, ...configParametersData, ...lorawanParametersData];
 
@@ -730,18 +1172,35 @@ function generateDownlink() {
             const parameter = allParameters[index];
 
             const valueHex = toHex(input.value);
-            result += parameter.hex + valueHex;
+            rawResult += parameter.hex + valueHex;
+            htmlResult += '<span class="dl-pair"><span class="dl-id">' + parameter.hex + '</span><span class="dl-val">' + valueHex + '</span></span>';
 
             count++;
         }
     });
 
-    const isEmpty = !result || result === "";
-    document.getElementById("output").innerText = result || t('noValue');
+    const output = document.getElementById("output");
+    const isEmpty = !rawResult;
+    if (isEmpty) {
+        output.innerHTML = t('noValue');
+        output.dataset.raw = '';
+    } else {
+        output.innerHTML = htmlResult;
+        output.dataset.raw = rawResult;
+    }
     document.getElementById("copyBtn").disabled = isEmpty;
 }
 
-// ==== EVENT LISTENER ====
+// Alle Eingabefelder zurücksetzen und Downlink-Ausgabe aktualisieren
+function clearAllInputs() {
+    document.querySelectorAll('input').forEach(input => {
+        input.value = '';
+    });
+    generateDownlink();
+}
+
+// ==== GLOBALER INPUT-LISTENER ====
+// Beschränkt Werte auf signed 16-Bit Bereich (-32768...32767) und aktualisiert den Downlink
 document.addEventListener("input", function(e) {
     if (e.target.tagName === 'INPUT' && e.target.type === 'number') {
         let val = parseInt(e.target.value, 10);
@@ -753,11 +1212,13 @@ document.addEventListener("input", function(e) {
     generateDownlink();
 });
 
-// ==== TOOLTIP FUNKTIONEN ====
+// ==== TOOLTIP-SYSTEM ====
+// Dynamisches Tooltip-Element, folgt dem Mauszeiger und zeigt Beschreibungstexte an
 const tooltip = document.createElement('div');
 tooltip.className = 'info-tooltip';
 document.body.appendChild(tooltip);
 
+// Tooltip anzeigen: setzt Text, macht sichtbar und positioniert am Mauszeiger
 function showTooltip(event, text) {
     tooltip.textContent = text;
     tooltip.classList.add('visible');
@@ -774,6 +1235,7 @@ document.addEventListener('mousemove', function(e) {
     }
 });
 
+// Tooltip-Position berechnen: rechts/unterhalb des Mauszeigers, Kollisionsprüfung am Fensterrand
 function positionTooltip(e) {
     const offset = 12;
     let left = e.clientX + offset;
@@ -789,7 +1251,8 @@ function positionTooltip(e) {
     tooltip.style.top = top + 'px';
 }
 
-// ==== DOWNLOAD FUNKTION ====
+// ==== PDF-DOWNLOAD ====
+// Öffnet das Modbus-Handbuch (PDF) in einem neuen Tab beim Klick auf den Download-Button
 function downloadParameter(index) {
     const a = document.createElement('a');
     a.href = 'Joy-RS485_Modbus_Handbuch_de.pdf';
@@ -797,9 +1260,11 @@ function downloadParameter(index) {
     a.click();
 }
 
-// ==== COPY FUNKTION ====
+// ==== ZWISCHENABLAGE ====
+// Kopiert den reinen Hex-String (ohne HTML-Formatierung) in die Zwischenablage
 function copyToClipboard() {
-    const text = document.getElementById("output").innerText;
+    const raw = document.getElementById("output").dataset.raw;
+    const text = raw || document.getElementById("output").innerText;
     navigator.clipboard.writeText(text);
     alert(t('copied'));
 }
