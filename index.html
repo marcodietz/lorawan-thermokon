@@ -1240,18 +1240,27 @@ document.addEventListener('mousemove', function(e) {
     }
 });
 
-// Tooltip-Position berechnen: rechts/unterhalb des Mauszeigers, Kollisionsprüfung am Fensterrand
+// Tooltip-Position berechnen: rechts/unterhalb des Mauszeigers, auf Viewport begrenzt
 function positionTooltip(e) {
     const offset = 12;
+    const vpW = window.innerWidth;
+    const vpH = window.innerHeight;
     let left = e.clientX + offset;
     let top = e.clientY + offset;
     const rect = tooltip.getBoundingClientRect();
-    if (left + rect.width > window.innerWidth - 10) {
+    // Rechter Rand: Tooltip nach links verschieben
+    if (left + rect.width > vpW - 10) {
         left = e.clientX - rect.width - offset;
     }
-    if (top + rect.height > window.innerHeight - 10) {
+    // Unterer Rand: Tooltip nach oben verschieben
+    if (top + rect.height > vpH - 10) {
         top = e.clientY - rect.height - offset;
     }
+    // Sicherstellen, dass Tooltip nie den linken/oberen Rand verlässt
+    if (left < 5) left = 5;
+    if (top < 5) top = 5;
+    // Max-Breite auf Viewport begrenzen (für schmale Bildschirme)
+    tooltip.style.maxWidth = (vpW - 20) + 'px';
     tooltip.style.left = left + 'px';
     tooltip.style.top = top + 'px';
 }
