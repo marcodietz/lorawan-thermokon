@@ -41,9 +41,9 @@
         background: white;
         padding: 20px;
         border-radius: 10px;
-        max-width: 900px;
+        max-width: 1200px;
     }
-    /* Spaltenüberschriften-Zeile (Parameter, Hex, Modbus, Wert, Bereich) */
+    /* Spaltenüberschriften-Zeile (Parameter, Hex, Modbus, Protokolladresse, Wert, Bereich) */
     .header {
         display: flex;
         font-weight: bold;
@@ -61,7 +61,11 @@
         text-align: center;
     }
     .header-modbus {
-        width: 100px;
+        width: 140px;
+        text-align: center;
+    }
+    .header-protaddr {
+        width: 150px;
         text-align: center;
     }
     .header-value {
@@ -94,11 +98,19 @@
     }
     /* Modbus-Register-Spalte: Monospace, grün, zentriert (z.B. [2]) */
     .modbus-col {
-        width: 100px;
+        width: 140px;
         text-align: center;
         font-family: monospace;
         font-weight: bold;
         color: #28a745;
+    }
+    /* Modbus-Protokolladresse-Spalte: Monospace, orange, zentriert */
+    .protaddr-col {
+        width: 150px;
+        text-align: center;
+        font-family: monospace;
+        font-weight: bold;
+        color: #e67e22;
     }
     .input {
         width: 120px;
@@ -133,7 +145,7 @@
         color: #333;
         font-family: monospace;
         word-break: break-all;
-        max-width: 900px;
+        max-width: 1200px;
         border-radius: 4px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         font-size: 14px;
@@ -164,12 +176,37 @@
     }
     button {
         margin-top: 10px;
-        padding: 10px;
+        padding: 10px 16px;
         cursor: pointer;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        font-family: Arial, sans-serif;
+        border: none;
+        box-sizing: border-box;
+        line-height: 1.4;
+        vertical-align: middle;
+        transition: all 0.2s ease;
     }
     button:disabled {
         opacity: 0.5;
         cursor: not-allowed;
+    }
+    .action-btn-copy {
+        background: white;
+        border: 2px solid #333;
+        color: #333;
+    }
+    .action-btn-copy:hover {
+        background: #333;
+        color: white;
+    }
+    .action-btn-clear {
+        background: #d32f2f;
+        color: white;
+    }
+    .action-btn-clear:hover {
+        background: #b71c1c;
     }
     /* Sprachumschalter: wird per margin-left:auto ans rechte Ende der Top-Bar geschoben */
     .language-toggle {
@@ -609,7 +646,7 @@
             -webkit-mask-image: linear-gradient(to right, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 95%);
             mask-image: linear-gradient(to right, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 95%);
         }
-        .hex-col, .modbus-col {
+        .hex-col, .modbus-col, .protaddr-col {
             width: auto;
             text-align: left;
             font-size: 12px;
@@ -621,7 +658,13 @@
             font-family: Arial, sans-serif;
         }
         .modbus-col::before {
-            content: 'Modbus: ';
+            content: 'Register: ';
+            font-weight: normal;
+            color: #888;
+            font-family: Arial, sans-serif;
+        }
+        .protaddr-col::before {
+            content: 'Prot.Addr: ';
             font-weight: normal;
             color: #888;
             font-family: Arial, sans-serif;
@@ -675,6 +718,79 @@
             margin-left: 4px;
         }
     }
+
+    /* ==== DOWNLINK-HISTORIE ==== */
+    .history-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 10px;
+        flex-wrap: wrap;
+    }
+    .history-bar select {
+        flex: 1;
+        min-width: 200px;
+        padding: 10px 12px;
+        border: 2px solid #007bff;
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: monospace;
+        background: white;
+        cursor: pointer;
+    }
+    .history-bar select:focus {
+        outline: none;
+        border-color: #0056b3;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+    }
+    .history-bar button {
+        margin-top: 0;
+    }
+    .btn-save-history {
+        background: #28a745;
+        color: white;
+    }
+    .btn-save-history:hover {
+        background: #218838;
+    }
+    .btn-save-history:disabled {
+        background: #aaa;
+        cursor: not-allowed;
+    }
+    .btn-export-history {
+        background: #007bff;
+        color: white;
+    }
+    .btn-export-history:hover {
+        background: #0056b3;
+    }
+    .btn-export-history:disabled {
+        background: #aaa;
+        cursor: not-allowed;
+    }
+    .btn-delete-history {
+        background: #d32f2f;
+        color: white;
+    }
+    .btn-delete-history:hover {
+        background: #b71c1c;
+    }
+    .btn-delete-history:disabled {
+        background: #aaa;
+        cursor: not-allowed;
+    }
+    @media (max-width: 768px) {
+        .history-bar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .history-bar select {
+            min-width: unset;
+        }
+        .history-bar button {
+            width: 100%;
+        }
+    }
 </style>
 </head>
 <body>
@@ -711,8 +827,16 @@
 <div class="sticky-output">
 <h3 id="outputTitle" style="margin:0 0 6px 0;">Generierter Downlink</h3>
 <div id="output">(kein Wert gesetzt)</div>
-<button onclick="copyToClipboard()" id="copyBtn" disabled>In Zwischenablage kopieren</button>
-<button onclick="clearAllInputs()" id="clearBtn" style="margin-left: 10px; background: #d32f2f; color: white; border: none; border-radius: 5px;">Alle Werte löschen</button>
+<button onclick="copyToClipboard()" id="copyBtn" class="action-btn-copy" disabled>In Zwischenablage kopieren</button>
+<button onclick="clearAllInputs()" id="clearBtn" class="action-btn-clear" style="margin-left: 10px;">Alle Werte löschen</button>
+<button onclick="saveToHistory()" id="saveBtn" class="btn-save-history" style="margin-left: 10px;" disabled>💾 Downlink in Historie speichern</button>
+<div class="history-bar">
+    <select id="historySelect" onchange="loadFromHistory()">
+        <option value="" id="historyPlaceholder">-- Gespeicherte Downlinks --</option>
+    </select>
+    <button onclick="exportHistory()" id="exportBtn" class="btn-export-history" disabled>📄 Export TXT</button>
+    <button onclick="deleteHistoryEntry()" id="deleteHistoryBtn" class="btn-delete-history" disabled>🗑️ Löschen</button>
+</div>
 </div>
 
 <div class="container">
@@ -768,8 +892,15 @@ const translations = {
         copyBtn: 'In Zwischenablage kopieren',
         copied: 'Downlink kopiert!',
         clearBtn: 'Alle Werte löschen',
+        saveBtn: '💾 Downlink in Historie speichern',
+        saved: 'Downlink gespeichert!',
+        historyPlaceholder: '-- Gespeicherte Downlinks --',
+        exportBtn: '📄 Export TXT',
+        deleteHistoryBtn: '🗑️ Löschen',
+        exportFilename: 'Downlink_Historie',
         descHeader: 'Beschreibung',
         rangeHeader: 'Bereich',
+        protAddrHeader: 'Protokolladresse Modbus',
         runtimeInfo: 'Laufzeit-Parameter werden zur Laufzeit des Geräts gesetzt und können jederzeit per Downlink überschrieben werden. Sie beeinflussen den aktuellen Betriebszustand (z. B. Sollwerte, Uhrzeit, Präsenz).',
         configInfo: 'Konfigurationsparameter definieren die Grundeinstellungen des Geräts wie Sprache, Sensoroffsets, Display-Anzeige und Reglerverhalten. Änderungen werden dauerhaft gespeichert.',
         lorawanInfo: 'LoRaWAN-Parameter steuern die Funkverbindung des Sensors, z. B. Sendeintervall (Heartbeat), Bestätigungsmodus und Datenrate. Diese Einstellungen beeinflussen Reichweite und Batterielebensdauer.',
@@ -790,8 +921,15 @@ const translations = {
         copyBtn: 'Copy to Clipboard',
         copied: 'Downlink copied!',
         clearBtn: 'Clear All Values',
+        saveBtn: '💾 Save Downlink to History',
+        saved: 'Downlink saved!',
+        historyPlaceholder: '-- Saved Downlinks --',
+        exportBtn: '📄 Export TXT',
+        deleteHistoryBtn: '🗑️ Delete',
+        exportFilename: 'Downlink_History',
         descHeader: 'Description',
         rangeHeader: 'Range',
+        protAddrHeader: 'Protocol Address Modbus',
         runtimeInfo: 'Runtime parameters are set during device operation and can be overwritten at any time via downlink. They affect the current operating state (e.g. setpoints, time, presence).',
         configInfo: 'Configuration parameters define the basic device settings such as language, sensor offsets, display content and controller behavior. Changes are stored permanently.',
         lorawanInfo: 'LoRaWAN parameters control the sensor\'s radio connection, e.g. transmission interval (heartbeat), confirmation mode and data rate. These settings affect range and battery life.',
@@ -1007,7 +1145,8 @@ function renderParameterSection(title, parameters, startIndex, infoKey) {
         <div class="header-param">${t('paramColumn')}</div>
         <div style="width:180px;margin-left:5px;">${t('descHeader')}</div>
         <div class="header-hex">Identifier Hex</div>
-        <div class="header-modbus">Register Modbus</div>
+        <div class="header-modbus">Registeradresse Modbus</div>
+        <div class="header-protaddr">${t('protAddrHeader')}</div>
         <div class="header-value">${t('valueHeader')}</div>
         <div class="header-range">${t('rangeHeader')}</div>
         <div class="header-info"></div>
@@ -1028,7 +1167,8 @@ function renderParameterSection(title, parameters, startIndex, infoKey) {
                 <span class="info-text-inline" onmouseenter="showTooltip(event, '${tooltipText.replace(/'/g, "&apos;")}')" onmouseleave="hideTooltip()">${tooltipText}</span>
             </div>
             <div class="hex-col">${p.hex}</div>
-            <div class="modbus-col">[${p.meta}]</div>
+            <div class="modbus-col">[${typeof p.meta === 'number' ? p.meta + 1 : p.meta}]</div>
+            <div class="protaddr-col">[${p.meta}]</div>
             <div class="input">
                 <input type="number" min="-32768" max="32767" data-index="${startIndex + index}">
             </div>
@@ -1050,6 +1190,10 @@ function renderUI() {
     document.getElementById('outputTitle').textContent = t('outputTitle');
     document.getElementById('copyBtn').textContent = t('copyBtn');
     document.getElementById('clearBtn').textContent = t('clearBtn');
+    document.getElementById('saveBtn').innerHTML = t('saveBtn');
+    document.getElementById('historyPlaceholder').textContent = t('historyPlaceholder');
+    document.getElementById('exportBtn').innerHTML = t('exportBtn');
+    document.getElementById('deleteHistoryBtn').innerHTML = t('deleteHistoryBtn');
     
     // Update Tab Labels
     document.getElementById('tab-generator').textContent = t('tabGenerator');
@@ -1194,6 +1338,7 @@ function generateDownlink() {
         output.dataset.raw = rawResult;
     }
     document.getElementById("copyBtn").disabled = isEmpty;
+    document.getElementById("saveBtn").disabled = isEmpty;
 }
 
 // Alle Eingabefelder zurücksetzen und Downlink-Ausgabe aktualisieren
@@ -1282,6 +1427,170 @@ function copyToClipboard() {
     navigator.clipboard.writeText(text);
     alert(t('copied'));
 }
+
+// ==== DOWNLINK-HISTORIE ====
+// Speichert die letzten 10 Downlinks im localStorage inkl. aller Eingabewerte
+
+const HISTORY_KEY = 'downlinkHistory';
+
+// Aktuelle Feldwerte als Objekt sammeln (index → value)
+function collectFieldValues() {
+    const values = {};
+    document.querySelectorAll('input[data-index]').forEach(input => {
+        if (input.value !== '') {
+            values[input.dataset.index] = input.value;
+        }
+    });
+    return values;
+}
+
+// Alle Felder aus gespeichertem Objekt wiederherstellen
+function restoreFieldValues(values) {
+    document.querySelectorAll('input[data-index]').forEach(input => {
+        input.value = values[input.dataset.index] || '';
+    });
+    generateDownlink();
+}
+
+// Historie aus localStorage laden
+function getHistory() {
+    try {
+        return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+    } catch (e) {
+        return [];
+    }
+}
+
+// Historie in localStorage speichern
+function setHistory(history) {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+}
+
+// Downlink in Historie speichern
+function saveToHistory() {
+    const raw = document.getElementById("output").dataset.raw;
+    if (!raw) return;
+
+    const allParameters = [...runtimeParametersData, ...configParametersData, ...lorawanParametersData];
+    const fieldValues = collectFieldValues();
+
+    // Lesbaren Label-String erzeugen
+    const labels = Object.keys(fieldValues).map(idx => {
+        const p = allParameters[idx];
+        const name = p ? p[currentLanguage] || p.de : 'Param ' + idx;
+        return name + '=' + fieldValues[idx];
+    }).join(', ');
+
+    const now = new Date();
+    const timestamp = now.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    const entry = {
+        timestamp: timestamp,
+        raw: raw,
+        fieldValues: fieldValues,
+        labels: labels
+    };
+
+    let history = getHistory();
+    history.unshift(entry);
+    if (history.length > 10) history = history.slice(0, 10);
+    setHistory(history);
+
+    renderHistoryDropdown();
+    alert(t('saved'));
+}
+
+// Dropdown mit gespeicherten Downlinks befüllen
+function renderHistoryDropdown() {
+    const select = document.getElementById('historySelect');
+    // Alle Optionen außer Placeholder entfernen
+    while (select.options.length > 1) {
+        select.remove(1);
+    }
+    // Placeholder-Text aktualisieren
+    select.options[0].textContent = t('historyPlaceholder');
+
+    const history = getHistory();
+    history.forEach((entry, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        const formattedHex = entry.raw.match(/.{1,8}/g).join(' | ');
+        const shortHex = formattedHex.length > 40 ? formattedHex.substring(0, 40) + '...' : formattedHex;
+        opt.textContent = entry.timestamp + ' | ' + shortHex;
+        opt.title = entry.labels;
+        select.appendChild(opt);
+    });
+
+    document.getElementById('exportBtn').disabled = history.length === 0;
+    document.getElementById('deleteHistoryBtn').disabled = true;
+    select.value = '';
+}
+
+// Gespeicherten Downlink laden und Felder wiederherstellen
+function loadFromHistory() {
+    const select = document.getElementById('historySelect');
+    const idx = select.value;
+    document.getElementById('deleteHistoryBtn').disabled = (idx === '');
+    if (idx === '') return;
+
+    const history = getHistory();
+    const entry = history[parseInt(idx)];
+    if (!entry) return;
+
+    restoreFieldValues(entry.fieldValues);
+}
+
+// Einen Eintrag aus der Historie löschen
+function deleteHistoryEntry() {
+    const select = document.getElementById('historySelect');
+    const idx = select.value;
+    if (idx === '') return;
+
+    let history = getHistory();
+    history.splice(parseInt(idx), 1);
+    setHistory(history);
+    renderHistoryDropdown();
+}
+
+// Gesamte Historie als lesbares TXT exportieren
+function exportHistory() {
+    const history = getHistory();
+    if (history.length === 0) return;
+
+    const allParameters = [...runtimeParametersData, ...configParametersData, ...lorawanParametersData];
+    let txt = '========================================\n';
+    txt += '  Downlink Historie - Export\n';
+    txt += '  ' + new Date().toLocaleString('de-DE') + '\n';
+    txt += '========================================\n\n';
+
+    history.forEach((entry, idx) => {
+        txt += '--- Downlink #' + (idx + 1) + ' ---\n';
+        txt += 'Zeitstempel: ' + entry.timestamp + '\n';
+        txt += 'Hex-String:  ' + entry.raw + '\n';
+        txt += 'Parameter:\n';
+
+        if (entry.fieldValues) {
+            Object.keys(entry.fieldValues).forEach(fieldIdx => {
+                const p = allParameters[fieldIdx];
+                const name = p ? (p.de + ' / ' + p.en) : 'Parameter ' + fieldIdx;
+                const hex = p ? p.hex : '????';
+                txt += '  - ' + name + ' [0x' + hex + '] = ' + entry.fieldValues[fieldIdx] + '\n';
+            });
+        }
+        txt += '\n';
+    });
+
+    const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = t('exportFilename') + '_' + new Date().toISOString().slice(0, 10) + '.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// Historie-Dropdown beim Laden initialisieren
+renderHistoryDropdown();
 </script>
 
 </body>
