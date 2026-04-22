@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Downlink Generator JOY LoRaWAN</title>
+<link rel="stylesheet" href="../../style.css">
+<script src="../../assets/header.js"></script>
+</head>
+<body>
+
+<!-- ==== GENERATOR-SEITE: Sticky Downlink-Ausgabe oben, darunter die Parametertabellen ==== -->
+<div id="generator" class="page active">
+<div class="sticky-output">
+<h3 id="outputTitle" style="margin:0 0 6px 0;">Generierter Downlink</h3>
+<div id="output">(kein Wert gesetzt)</div>
+<button onclick="copyToClipboard()" id="copyBtn" class="action-btn-copy" disabled>In Zwischenablage kopieren</button>
+<button onclick="clearAllInputs()" id="clearBtn" class="action-btn-clear" style="margin-left: 10px;">Alle Werte löschen</button>
+<button onclick="saveToHistory()" id="saveBtn" class="btn-save-history" style="margin-left: 10px;" disabled>💾 Downlink in Historie speichern</button>
+<div class="history-bar">
+    <select id="historySelect" onchange="loadFromHistory()">
+        <option value="" id="historyPlaceholder">-- Gespeicherte Downlinks --</option>
+    </select>
+    <button onclick="exportHistory()" id="exportBtn" class="btn-export-history" disabled>📄 Export TXT</button>
+    <button onclick="deleteHistoryEntry()" id="deleteHistoryBtn" class="btn-delete-history" disabled>🗑️ Löschen</button>
+</div>
+</div>
+
+<div class="container">
+    <div id="topicContainer"></div>
+</div>
+</div>
+
+<script>
+// ==== HEADER ====
+renderHeader({
+    title: 'Downlink Generator JOY',
+    activeId: 'downlink-generator',
+    basePath: '../../',
+    showLanguage: true,
+});
+
+// ==== SPRACH-SYSTEM ====
+const translations = {
+    de: {
+        mainTitle: 'Downlink Generator JOY',
+        runtimeParam: 'Laufzeit-Parameter',
+        configParam: 'Konfigurationsparameter',
+        lorawanParam: 'LoRaWAN-Parameter',
+        paramHeader: 'Parameter - Hex - Modbus',
+        paramColumn: 'Bezeichnung Parameter',
+        valueHeader: 'Wert',
+        outputTitle: 'Generierter Downlink',
+        noValue: '(kein Wert gesetzt)',
+        copyBtn: 'In Zwischenablage kopieren',
+        copied: 'Downlink kopiert!',
+        clearBtn: 'Alle Werte löschen',
+        saveBtn: '💾 Downlink in Historie speichern',
+        saved: 'Downlink gespeichert!',
+        historyPlaceholder: '-- Gespeicherte Downlinks --',
+        exportBtn: '📄 Export TXT',
+        deleteHistoryBtn: '🗑️ Löschen',
+        exportFilename: 'Downlink_Historie',
+        descHeader: 'Beschreibung',
+        rangeHeader: 'Bereich',
+        protAddrHeader: 'Protokolladresse Modbus',
+        runtimeInfo: 'Laufzeit-Parameter werden zur Laufzeit des Geräts gesetzt und können jederzeit per Downlink überschrieben werden. Sie beeinflussen den aktuellen Betriebszustand (z. B. Sollwerte, Uhrzeit, Präsenz).',
+        configInfo: 'Konfigurationsparameter definieren die Grundeinstellungen des Geräts wie Sprache, Sensoroffsets, Display-Anzeige und Reglerverhalten. Änderungen werden dauerhaft gespeichert.',
+        lorawanInfo: 'LoRaWAN-Parameter steuern die Funkverbindung des Sensors, z. B. Sendeintervall (Heartbeat), Bestätigungsmodus und Datenrate. Diese Einstellungen beeinflussen Reichweite und Batterielebensdauer.',
+        tabGenerator: 'Downlink Generator',
+        langBtn: 'EN'
+    },
+    en: {
+        mainTitle: 'Downlink Generator JOY',
+        runtimeParam: 'Runtime Parameters',
+        configParam: 'Configuration Parameters',
+        lorawanParam: 'LoRaWAN Parameters',
+        paramHeader: 'Parameter - Hex - Modbus',
+        paramColumn: 'Parameter Description',
+        valueHeader: 'Value',
+        outputTitle: 'Generated Downlink',
+        noValue: '(no value set)',
+        copyBtn: 'Copy to Clipboard',
+        copied: 'Downlink copied!',
+        clearBtn: 'Clear All Values',
+        saveBtn: '💾 Save Downlink to History',
+        saved: 'Downlink saved!',
+        historyPlaceholder: '-- Saved Downlinks --',
+        exportBtn: '📄 Export TXT',
+        deleteHistoryBtn: '🗑️ Delete',
+        exportFilename: 'Downlink_History',
+        descHeader: 'Description',
+        rangeHeader: 'Range',
+        protAddrHeader: 'Protocol Address Modbus',
+        runtimeInfo: 'Runtime parameters are set during device operation and can be overwritten at any time via downlink. They affect the current operating state (e.g. setpoints, time, presence).',
+        configInfo: 'Configuration parameters define the basic device settings such as language, sensor offsets, display content and controller behavior. Changes are stored permanently.',
+        lorawanInfo: 'LoRaWAN parameters control the sensor\'s radio connection, e.g. transmission interval (heartbeat), confirmation mode and data rate. These settings affect range and battery life.',
+        tabGenerator: 'Downlink Generator',
+        langBtn: 'DE'
+    }
+};
+
+const configParametersData = [
+    { de: "Typ 6-Wege Ventil", en: "Type 6 Way-Valve", hex: "0003", meta: 2, name: "type_6_way_valve",
+      info_de: "Typ des 6-Wege Ventils konfigurieren. Wert gemäß Ventiltypentabelle eingeben.",
+      info_en: "Configure 6-way valve type. Enter value according to valve type table.", range: "0...6" },
+    { de: "Vorgabe Sprache", en: "Language Setting", hex: "0004", meta: 3, name: "language",
+      info_de: "Gerätesprache einstellen. 0 = Deutsch, 1 = Englisch, 2 = Französisch.",
+      info_en: "Set device language. 0 = German, 1 = English, 2 = French.", range: "0...2" },
+    { de: "Offset interner Sensor", en: "Internal Sensor Offset", hex: "0005", meta: 4, name: "offset_internal",
+      info_de: "Korrekturwert für den internen Sensor in 0,1 K Schritten (z. B. 5 = +0,5 K).",
+      info_en: "Correction value for the internal sensor in 0.1 K steps (e.g. 5 = +0.5 K).", range: "-30...+30" },
+    { de: "Offset externer Sensor", en: "External Sensor Offset", hex: "0006", meta: 5, name: "offset_external",
+      info_de: "Korrekturwert für den externen Sensor in 0,1 K Schritten (z. B. -3 = -0,3 K).",
+      info_en: "Correction value for the external sensor in 0.1 K steps (e.g. -3 = -0.3 K).", range: "-30...+30" },
+    { de: "Einheit Temperatur", en: "Temperature Unit", hex: "0007", meta: 6, name: "unit_temperature",
+      info_de: "Anzeigeeinheit für Temperatur. 0 = Celsius (°C), 1 = Fahrenheit (°F).",
+      info_en: "Display unit for temperature. 0 = Celsius (°C), 1 = Fahrenheit (°F).", range: "0...1" },
+    { de: "Format Uhrzeit", en: "Time Format", hex: "0008", meta: 7, name: "format_time",
+      info_de: "Uhrzeitformat wählen. 0 = 24-Stunden-Format, 1 = 12-Stunden-Format (AM/PM).",
+      info_en: "Select time format. 0 = 24-hour format, 1 = 12-hour format (AM/PM).", range: "0...1" },
+    { de: "Format Datum", en: "Date Format", hex: "0009", meta: 8, name: "format_date",
+      info_de: "Datumsformat wählen. 0 = TT.MM.JJJJ, 1 = MM/TT/JJJJ.",
+      info_en: "Select date format. 0 = DD.MM.YYYY, 1 = MM/DD/YYYY.", range: "0...1" },
+    { de: "Anzahl Lüfterstufen", en: "Number of Fan Levels", hex: "000A", meta: 9, name: "fan_stages_count",
+      info_de: "Anzahl der verfügbaren Lüfterstufen eingeben (z. B. 3 für Stufe 1–3).",
+      info_en: "Enter number of available fan levels (e.g. 3 for levels 1–3).", range: "0...5" },
+    { de: "Anzeige Hauptbildschirm", en: "Main Display", hex: "000B", meta: 10, name: "display_main_screen",
+      info_de: "Informationen für den Hauptbildschirm festlegen. 0 = Temperatur, 1 = Feuchte, 2 = CO2.",
+      info_en: "Define main screen content. 0 = Temperature, 1 = Humidity, 2 = CO2.", range: "0...2" },
+    { de: "Fußzeile Symbol 1", en: "Footer Symbol 1", hex: "000C", meta: 11, name: "symbol_1_footer",
+      info_de: "Symbol für die erste Position in der Fußzeile. Wert gemäß Symboltabelle eingeben.",
+      info_en: "Symbol for the first footer position. Enter value according to symbol table.", range: "0...15" },
+    { de: "Fußzeile Symbol 2", en: "Footer Symbol 2", hex: "000D", meta: 12, name: "symbol_2_footer",
+      info_de: "Symbol für die zweite Position in der Fußzeile. Wert gemäß Symboltabelle eingeben.",
+      info_en: "Symbol for the second footer position. Enter value according to symbol table.", range: "0...15" },
+    { de: "Fußzeile Symbol 3", en: "Footer Symbol 3", hex: "000E", meta: 13, name: "symbol_3_footer",
+      info_de: "Symbol für die dritte Position in der Fußzeile. Wert gemäß Symboltabelle eingeben.",
+      info_en: "Symbol for the third footer position. Enter value according to symbol table.", range: "0...15" },
+    { de: "Fußzeile Symbol 4", en: "Footer Symbol 4", hex: "000F", meta: 14, name: "symbol_4_footer",
+      info_de: "Symbol für die vierte Position in der Fußzeile. Wert gemäß Symboltabelle eingeben.",
+      info_en: "Symbol for the fourth footer position. Enter value according to symbol table.", range: "0...15" },
+    { de: "Fußzeile Symbol 5", en: "Footer Symbol 5", hex: "0010", meta: 15, name: "symbol_5_footer",
+      info_de: "Symbol für die fünfte Position in der Fußzeile. Wert gemäß Symboltabelle eingeben.",
+      info_en: "Symbol for the fifth footer position. Enter value according to symbol table.", range: "0...15" },
+    { de: "Konfiguration Eingang 1", en: "Configuration Input 1", hex: "0013", meta: 18, name: "config_input_1",
+      info_de: "Funktion von Eingang 1 festlegen. Wert gemäß Eingangskonfigurationstabelle eingeben.",
+      info_en: "Define function of input 1. Enter value according to input configuration table.", range: "0...10" },
+    { de: "Konfiguration Eingang 2", en: "Configuration Input 2", hex: "0014", meta: 19, name: "config_input_2",
+      info_de: "Funktion von Eingang 2 festlegen. Wert gemäß Eingangskonfigurationstabelle eingeben.",
+      info_en: "Define function of input 2. Enter value according to input configuration table.", range: "0...10" },
+    { de: "Zuordnung Lüfterstufen", en: "Assignment Fan-Stages", hex: "0063", meta: 98, name: "fan_stage_assignment",
+      info_de: "Zuordnung der Lüfterstufen zu den Ausgängen konfigurieren. Wert gemäß Zuordnungstabelle eingeben.",
+      info_en: "Configure assignment of fan stages to outputs. Enter value according to assignment table.", range: "0...5" },
+    { de: "Funktion Regler Heizen", en: "Controller function heating", hex: "006D", meta: 108, name: "function_ctrl_heating",
+      info_de: "Reglerfunktion für den Heizbetrieb festlegen. Wert gemäß Reglerfunktionstabelle eingeben.",
+      info_en: "Define controller function for heating mode. Enter value according to controller function table.", range: "0...3" },
+    { de: "Funktion Regler Kühlen", en: "Controller function cooling", hex: "006E", meta: 109, name: "function_ctrl_cooling",
+      info_de: "Reglerfunktion für den Kühlbetrieb festlegen. Wert gemäß Reglerfunktionstabelle eingeben.",
+      info_en: "Define controller function for cooling mode. Enter value according to controller function table.", range: "0...3" },
+    { de: "Schritte Lüfterstufen", en: "Fan stage steps", hex: "006F", meta: 110, name: "fan_stage_steps",
+      info_de: "Schrittweite für die Umschaltung der Lüfterstufen in Prozent festlegen.",
+      info_en: "Define step size for fan stage switching in percent.", range: "1...50" },
+    { de: "Anzeige Sollwertverstellung", en: "Setpoint adjustment display", hex: "0073", meta: 114, name: "display_setpoint_adj",
+      info_de: "Anzeige der Sollwertverstellung auf dem Display konfigurieren. 0 = deaktiviert, 1 = aktiviert.",
+      info_en: "Configure setpoint adjustment display on screen. 0 = disabled, 1 = enabled.", range: "0...1" },
+    { de: "Funktion An/Aus Taste", en: "On/Off button function", hex: "0074", meta: 115, name: "function_btn_on_off",
+      info_de: "Funktion der An/Aus-Taste festlegen. 0 = deaktiviert, 1 = aktiviert.",
+      info_en: "Define on/off button function. 0 = disabled, 1 = enabled.", range: "0...1" },
+    { de: "Wirksinn Relais Heizen", en: "Relay logic heating", hex: "0085", meta: 132, name: "logic_relay_heating",
+      info_de: "Wirksinn des Heizrelais einstellen. 0 = normal (NO), 1 = invertiert (NC).",
+      info_en: "Set heating relay logic. 0 = normal (NO), 1 = inverted (NC).", range: "0...1" },
+    { de: "Wirksinn Relais Kühlen", en: "Relay logic cooling", hex: "0086", meta: 133, name: "logic_relay_cooling",
+      info_de: "Wirksinn des Kühlrelais einstellen. 0 = normal (NO), 1 = invertiert (NC).",
+      info_en: "Set cooling relay logic. 0 = normal (NO), 1 = inverted (NC).", range: "0...1" },
+    { de: "Wirksinn Analoger Ausgang Heizen", en: "Analog logic heating", hex: "0095", meta: 148, name: "logic_analog_heating",
+      info_de: "Wirksinn des analogen Heizausgangs einstellen. 0 = normal (0–10 V), 1 = invertiert (10–0 V).",
+      info_en: "Set analog heating output logic. 0 = normal (0–10 V), 1 = inverted (10–0 V).", range: "0...1" },
+    { de: "Wirksinn Analoger Ausgang Kühlen", en: "Analog logic cooling", hex: "0096", meta: 149, name: "logic_analog_cooling",
+      info_de: "Wirksinn des analogen Kühlausgangs einstellen. 0 = normal (0–10 V), 1 = invertiert (10–0 V).",
+      info_en: "Set analog cooling output logic. 0 = normal (0–10 V), 1 = inverted (10–0 V).", range: "0...1" }
+];
+
+const runtimeParametersData = [
+    { de: "Basissollwert", en: "Base Setpoint", hex: "0100", meta: 255, name: "setpoint_base",
+      info_de: "Gewünschten Basissollwert in 0,1 K Schritten eingeben (z. B. 210 = 21,0 °C).",
+      info_en: "Enter desired base setpoint in 0.1 K steps (e.g. 210 = 21.0 °C).", range: "50...350" },
+    { de: "Sollwert Offset", en: "Setpoint Offset", hex: "0101", meta: 256, name: "setpoint_offset",
+      info_de: "Offset zum Basissollwert in 0,1 K Schritten (z. B. 10 = +1,0 K).",
+      info_en: "Offset to base setpoint in 0.1 K steps (e.g. 10 = +1.0 K).", range: "-30...+30" },
+    { de: "Vorgabe Präsenz", en: "Presence Setting", hex: "0102", meta: 257, name: "presence_overwrite",
+      info_de: "Präsenzzustand überschreiben. 0 = abwesend, 1 = anwesend, 2 = freigegeben (automatisch).",
+      info_en: "Override presence state. 0 = absent, 1 = present, 2 = released (automatic).", range: "0...2" },
+    { de: "Vorgabe Taupunkt", en: "Dew Point Setting", hex: "0103", meta: 258, name: "dewpoint_overwrite",
+      info_de: "Taupunktsperre überschreiben. 0 = keine Sperre, 1 = Taupunkt erkannt (Sperre aktiv).",
+      info_en: "Override dew point lock. 0 = no lock, 1 = dew point detected (lock active).", range: "0...1" },
+    { de: "Vorgabe Fensterkontakt/Energiesperre", en: "Window Contact/Energy Lock", hex: "0104", meta: 259, name: "windowcontact_overwrite",
+      info_de: "Fensterkontaktzustand überschreiben. 0 = Fenster geschlossen, 1 = Fenster offen (Energiesperre).",
+      info_en: "Override window contact state. 0 = window closed, 1 = window open (energy lock).", range: "0...1" },
+    { de: "Vorgabe Change-Over", en: "Change-Over Setting", hex: "0105", meta: 260, name: "changeover_overwrite",
+      info_de: "Betriebsart überschreiben. 0 = Kühlen, 1 = Heizen, 2 = freigegeben (automatisch).",
+      info_en: "Override operating mode. 0 = cooling, 1 = heating, 2 = released (automatic).", range: "0...2" },
+    { de: "Gerät Ein/Standby (Aus)", en: "Device On/Standby (Off)", hex: "0106", meta: 261, name: "standby",
+      info_de: "Gerätestatus setzen. 0 = Standby (Aus), 1 = Ein (normaler Betrieb).",
+      info_en: "Set device status. 0 = Standby (Off), 1 = On (normal operation).", range: "0...1" },
+    { de: "Freigabe Tasten", en: "Button Enable", hex: "0107", meta: 262, name: "button_enable",
+      info_de: "Tastensperrung einstellen. 0 = alle Tasten gesperrt, 1 = alle Tasten freigegeben.",
+      info_en: "Set button lock. 0 = all buttons locked, 1 = all buttons enabled.", range: "0...1" },
+    { de: "Vorgabe Alarm", en: "Alarm Setting", hex: "0108", meta: 263, name: "alarm",
+      info_de: "Alarmzustand setzen. 0 = kein Alarm, 1 = Alarm aktiv.",
+      info_en: "Set alarm state. 0 = no alarm, 1 = alarm active.", range: "0...1" },
+    { de: "Uhrzeit Stunde", en: "Time Hour", hex: "0109", meta: 264, name: "hour",
+      info_de: "Aktuelle Stunde eintragen (0–23).",
+      info_en: "Enter current hour (0–23).", range: "0...23" },
+    { de: "Uhrzeit Minute", en: "Time Minute", hex: "010A", meta: 265, name: "minute",
+      info_de: "Aktuelle Minute eintragen (0–59).",
+      info_en: "Enter current minute (0–59).", range: "0...59" },
+    { de: "Datum Tag", en: "Date Day", hex: "010B", meta: 266, name: "day",
+      info_de: "Aktuellen Tag eintragen (1–31).",
+      info_en: "Enter current day (1–31).", range: "1...31" },
+    { de: "Datum Monat", en: "Date Month", hex: "010C", meta: 267, name: "month",
+      info_de: "Aktuellen Monat eintragen (1–12).",
+      info_en: "Enter current month (1–12).", range: "1...12" },
+    { de: "Datum Jahr", en: "Date Year", hex: "010D", meta: 268, name: "year",
+      info_de: "Aktuelles Jahr eintragen (z. B. 2026).",
+      info_en: "Enter current year (e.g. 2026).", range: "2000...2099" },
+    { de: "Vorgabe Regler", en: "Controller Setting", hex: "010E", meta: 269, name: "overwrite_controller",
+      info_de: "Reglermodus überschreiben. 0 = freigegeben (automatisch), 1 = manuell übersteuert.",
+      info_en: "Override controller mode. 0 = released (automatic), 1 = manually overridden.", range: "0...1" },
+    { de: "Vorgabe Lüfterstufe", en: "Fan Level Setting", hex: "010F", meta: 270, name: "fan_level_setting",
+      info_de: "Lüfterstufe manuell vorgeben. 0 = Automatik, 1–5 = manuelle Stufe.",
+      info_en: "Manually set fan level. 0 = automatic, 1–5 = manual level.", range: "0...5" },
+    { de: "Vorgabe Ausgang Heizen", en: "Heating Output Setting", hex: "0110", meta: 271, name: "heating_output_setting",
+      info_de: "Heizausgang manuell vorgeben in % (0–100). 0 = aus, 100 = volle Leistung.",
+      info_en: "Manually set heating output in % (0–100). 0 = off, 100 = full power.", range: "0...100" },
+    { de: "Vorgabe Ausgang Kühlen", en: "Cooling Output Setting", hex: "0111", meta: 272, name: "cooling_output_setting",
+      info_de: "Kühlausgang manuell vorgeben in % (0–100). 0 = aus, 100 = volle Leistung.",
+      info_en: "Manually set cooling output in % (0–100). 0 = off, 100 = full power.", range: "0...100" },
+    { de: "Vorgabe Ausgang 6-Wegeventil", en: "6-Way Valve Output Setting", hex: "0112", meta: 273, name: "valve_6way_output_setting",
+      info_de: "Stellung des 6-Wegeventils vorgeben in % (0–100).",
+      info_en: "Set 6-way valve position in % (0–100).", range: "0...100" },
+    { de: "Vorgabe ECO-Modus Übersteuern", en: "ECO Mode Override", hex: "0111", meta: 274, name: "eco_mode_override",
+      info_de: "ECO-Modus übersteuern. 0 = ECO-Modus inaktiv, 1 = ECO-Modus erzwungen.",
+      info_en: "Override ECO mode. 0 = ECO mode inactive, 1 = ECO mode forced.", range: "0...1" }
+];
+
+const lorawanParametersData = [
+    { de: "Heartbeat", en: "Heartbeat", hex: "C106", meta: "n.V.",
+      info_de: "Heartbeat-Intervall in Minuten eintragen (z. B. 60 = alle 60 Minuten).",
+      info_en: "Enter heartbeat interval in minutes (e.g. 60 = every 60 minutes).", range: "1...1440" },
+    { de: "Confirmation", en: "Confirmation", hex: "C21D", meta: "n.V.",
+      info_de: "Bestätigungsmodus aktivieren. 0 = unbestätigt (Unconfirmed), 1 = bestätigt (Confirmed).",
+      info_en: "Enable confirmation mode. 0 = unconfirmed, 1 = confirmed.", range: "0...1" },
+    { de: "ADR", en: "ADR", hex: "C217", meta: "n.V.",
+      info_de: "Adaptive Data Rate aktivieren. 0 = ADR deaktiviert, 1 = ADR aktiviert.",
+      info_en: "Enable Adaptive Data Rate. 0 = ADR disabled, 1 = ADR enabled.", range: "0...1" },
+    { de: "Data Rate", en: "Data Rate", hex: "C218", meta: "n.V.",
+      info_de: "LoRaWAN Datenrate manuell einstellen (0–5, DR0 = SF12, DR5 = SF7).",
+      info_en: "Manually set LoRaWAN data rate (0–5, DR0 = SF12, DR5 = SF7).", range: "0...5" }
+];
+
+function t(key) {
+    return translations[currentLanguage][key] || key;
+}
+
+function renderParameterSection(title, parameters, startIndex, infoKey) {
+    const container = document.getElementById("topicContainer");
+    
+    const sectionTitle = document.createElement("h3");
+    sectionTitle.className = "section-title";
+    const titleText = document.createElement("span");
+    titleText.textContent = title;
+    sectionTitle.appendChild(titleText);
+    
+    if (infoKey) {
+        const infoBtn = document.createElement("span");
+        infoBtn.className = "section-info-btn";
+        infoBtn.innerHTML = '<svg viewBox="0 0 20 24" width="12" height="14"><circle cx="10" cy="3.5" r="2.5"/><rect x="7.5" y="9" width="5" height="12" rx="1.5"/></svg>';
+        const infoText = t(infoKey);
+        infoBtn.addEventListener('mouseenter', function(e) { showTooltip(e, infoText); });
+        infoBtn.addEventListener('mouseleave', hideTooltip);
+        sectionTitle.appendChild(infoBtn);
+    }
+    container.appendChild(sectionTitle);
+    
+    const header = document.createElement("div");
+    header.className = "header";
+    header.innerHTML = `
+        <div class="header-param">${t('paramColumn')}</div>
+        <div style="width:180px;margin-left:5px;">${t('descHeader')}</div>
+        <div class="header-hex">Identifier Hex</div>
+        <div class="header-modbus">Registeradresse Modbus</div>
+        <div class="header-protaddr">${t('protAddrHeader')}</div>
+        <div class="header-value">${t('valueHeader')}</div>
+        <div class="header-range">${t('rangeHeader')}</div>
+        <div class="header-info"></div>
+    `;
+    container.appendChild(header);
+    
+    parameters.forEach((p, index) => {
+        const row = document.createElement("div");
+        row.className = "row";
+        const paramName = p[currentLanguage];
+        const tooltipText = currentLanguage === 'de' ? (p.info_de || '') : (p.info_en || '');
+        row.innerHTML = `
+            <div class="topic">${paramName}</div>
+            <div class="info-icon">
+                <span class="info-text-inline" onmouseenter="showTooltip(event, '${tooltipText.replace(/'/g, "&apos;")}')" onmouseleave="hideTooltip()">${tooltipText}</span>
+            </div>
+            <div class="hex-col">${p.hex}</div>
+            <div class="modbus-col">[${typeof p.meta === 'number' ? p.meta + 1 : p.meta}]</div>
+            <div class="protaddr-col">[${p.meta}]</div>
+            <div class="input">
+                <input type="number" min="-32768" max="32767" data-index="${startIndex + index}">
+            </div>
+            <div class="range-col">${p.range || ''}</div>
+            <div class="download-icon">
+                <button onclick="downloadParameter(${startIndex + index})" title="Download">&#x2193;</button>
+            </div>
+        `;
+        container.appendChild(row);
+    });
+}
+
+function renderUI() {
+    const container = document.getElementById("topicContainer");
+    container.innerHTML = '';
+    document.getElementById('mainTitle').textContent = t('mainTitle');
+    document.getElementById('outputTitle').textContent = t('outputTitle');
+    document.getElementById('copyBtn').textContent = t('copyBtn');
+    document.getElementById('clearBtn').textContent = t('clearBtn');
+    document.getElementById('saveBtn').innerHTML = t('saveBtn');
+    document.getElementById('historyPlaceholder').textContent = t('historyPlaceholder');
+    document.getElementById('exportBtn').innerHTML = t('exportBtn');
+    document.getElementById('deleteHistoryBtn').innerHTML = t('deleteHistoryBtn');
+    
+    document.getElementById('tab-generator') && (document.getElementById('tab-generator').textContent = t('tabGenerator'));
+    
+    renderParameterSection(t('runtimeParam'), runtimeParametersData, 0, 'runtimeInfo');
+    renderParameterSection(t('configParam'), configParametersData, runtimeParametersData.length, 'configInfo');
+    renderParameterSection(t('lorawanParam'), lorawanParametersData, runtimeParametersData.length + configParametersData.length, 'lorawanInfo');
+    document.getElementById("output").innerText = t('noValue');
+}
+
+window.onLanguageChange = renderUI;
+renderUI();
+
+function toHex(value) {
+    let num = Number(value);
+    if (num < 0) {
+        num = (num & 0xFFFF) >>> 0;
+    }
+    let hex = num.toString(16).toUpperCase();
+    return hex.padStart(4, "0");
+}
+
+function generateDownlink() {
+    let rawResult = "";
+    let htmlResult = "";
+    let count = 0;
+    const allParameters = [...runtimeParametersData, ...configParametersData, ...lorawanParametersData];
+
+    document.querySelectorAll("input").forEach(input => {
+        if (input.value !== "" && count < 10) {
+            const index = input.dataset.index;
+            const parameter = allParameters[index];
+            const valueHex = toHex(input.value);
+            rawResult += parameter.hex + valueHex;
+            htmlResult += '<span class="dl-pair"><span class="dl-id">' + parameter.hex + '</span><span class="dl-val">' + valueHex + '</span></span>';
+            count++;
+        }
+    });
+
+    const output = document.getElementById("output");
+    const isEmpty = !rawResult;
+    if (isEmpty) {
+        output.innerHTML = t('noValue');
+        output.dataset.raw = '';
+    } else {
+        output.innerHTML = htmlResult;
+        output.dataset.raw = rawResult;
+    }
+    document.getElementById("copyBtn").disabled = isEmpty;
+    document.getElementById("saveBtn").disabled = isEmpty;
+}
+
+function clearAllInputs() {
+    document.querySelectorAll('input').forEach(input => {
+        input.value = '';
+    });
+    generateDownlink();
+}
+
+document.addEventListener("input", function(e) {
+    if (e.target.tagName === 'INPUT' && e.target.type === 'number') {
+        let val = parseInt(e.target.value, 10);
+        if (!isNaN(val)) {
+            if (val > 32767) e.target.value = 32767;
+            else if (val < -32768) e.target.value = -32768;
+        }
+    }
+    generateDownlink();
+});
+
+const tooltip = document.createElement('div');
+tooltip.className = 'info-tooltip';
+document.body.appendChild(tooltip);
+
+function showTooltip(event, text) {
+    tooltip.textContent = text;
+    tooltip.classList.add('visible');
+    positionTooltip(event);
+}
+
+function hideTooltip() {
+    tooltip.classList.remove('visible');
+}
+
+document.addEventListener('mousemove', function(e) {
+    if (tooltip.classList.contains('visible')) {
+        positionTooltip(e);
+    }
+});
+
+function positionTooltip(e) {
+    const offset = 12;
+    const vpW = window.innerWidth;
+    const vpH = window.innerHeight;
+    let left = e.clientX + offset;
+    let top = e.clientY + offset;
+    const rect = tooltip.getBoundingClientRect();
+    if (left + rect.width > vpW - 10) left = e.clientX - rect.width - offset;
+    if (top + rect.height > vpH - 10) top = e.clientY - rect.height - offset;
+    if (left < 5) left = 5;
+    if (top < 5) top = 5;
+    tooltip.style.maxWidth = (vpW - 20) + 'px';
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = top + 'px';
+}
+
+function downloadParameter(index) {
+    const a = document.createElement('a');
+    a.href = '../../assets/Joy-RS485_Modbus_Handbuch_de.pdf';
+    a.target = '_blank';
+    a.click();
+}
+
+function copyToClipboard() {
+    const raw = document.getElementById("output").dataset.raw;
+    const text = raw || document.getElementById("output").innerText;
+    navigator.clipboard.writeText(text);
+    alert(t('copied'));
+}
+
+const HISTORY_KEY = 'downlinkHistory';
+
+function collectFieldValues() {
+    const values = {};
+    document.querySelectorAll('input[data-index]').forEach(input => {
+        if (input.value !== '') {
+            values[input.dataset.index] = input.value;
+        }
+    });
+    return values;
+}
+
+function restoreFieldValues(values) {
+    document.querySelectorAll('input[data-index]').forEach(input => {
+        input.value = values[input.dataset.index] || '';
+    });
+    generateDownlink();
+}
+
+function getHistory() {
+    try {
+        return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function setHistory(history) {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+}
+
+function saveToHistory() {
+    const raw = document.getElementById("output").dataset.raw;
+    if (!raw) return;
+
+    const allParameters = [...runtimeParametersData, ...configParametersData, ...lorawanParametersData];
+    const fieldValues = collectFieldValues();
+
+    const labels = Object.keys(fieldValues).map(idx => {
+        const p = allParameters[idx];
+        const name = p ? p[currentLanguage] || p.de : 'Param ' + idx;
+        return name + '=' + fieldValues[idx];
+    }).join(', ');
+
+    const now = new Date();
+    const timestamp = now.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    const entry = { timestamp, raw, fieldValues, labels };
+
+    let history = getHistory();
+    history.unshift(entry);
+    if (history.length > 10) history = history.slice(0, 10);
+    setHistory(history);
+
+    renderHistoryDropdown();
+    alert(t('saved'));
+}
+
+function renderHistoryDropdown() {
+    const select = document.getElementById('historySelect');
+    while (select.options.length > 1) select.remove(1);
+    select.options[0].textContent = t('historyPlaceholder');
+
+    const history = getHistory();
+    history.forEach((entry, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        const formattedHex = entry.raw.match(/.{1,8}/g).join(' | ');
+        const shortHex = formattedHex.length > 40 ? formattedHex.substring(0, 40) + '...' : formattedHex;
+        opt.textContent = entry.timestamp + ' | ' + shortHex;
+        opt.title = entry.labels;
+        select.appendChild(opt);
+    });
+
+    document.getElementById('exportBtn').disabled = history.length === 0;
+    document.getElementById('deleteHistoryBtn').disabled = true;
+    select.value = '';
+}
+
+function loadFromHistory() {
+    const select = document.getElementById('historySelect');
+    const idx = select.value;
+    document.getElementById('deleteHistoryBtn').disabled = (idx === '');
+    if (idx === '') return;
+
+    const history = getHistory();
+    const entry = history[parseInt(idx)];
+    if (!entry) return;
+
+    restoreFieldValues(entry.fieldValues);
+}
+
+function deleteHistoryEntry() {
+    const select = document.getElementById('historySelect');
+    const idx = select.value;
+    if (idx === '') return;
+
+    let history = getHistory();
+    history.splice(parseInt(idx), 1);
+    setHistory(history);
+    renderHistoryDropdown();
+}
+
+function exportHistory() {
+    const history = getHistory();
+    if (history.length === 0) return;
+
+    const allParameters = [...runtimeParametersData, ...configParametersData, ...lorawanParametersData];
+    let txt = '========================================\n';
+    txt += '  Downlink Historie - Export\n';
+    txt += '  ' + new Date().toLocaleString('de-DE') + '\n';
+    txt += '========================================\n\n';
+
+    history.forEach((entry, idx) => {
+        txt += '--- Downlink #' + (idx + 1) + ' ---\n';
+        txt += 'Zeitstempel: ' + entry.timestamp + '\n';
+        txt += 'Hex-String:  ' + entry.raw + '\n';
+        txt += 'Parameter:\n';
+        if (entry.fieldValues) {
+            Object.keys(entry.fieldValues).forEach(fieldIdx => {
+                const p = allParameters[fieldIdx];
+                const name = p ? (p.de + ' / ' + p.en) : 'Parameter ' + fieldIdx;
+                const hex = p ? p.hex : '????';
+                txt += '  - ' + name + ' [0x' + hex + '] = ' + entry.fieldValues[fieldIdx] + '\n';
+            });
+        }
+        txt += '\n';
+    });
+
+    const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = t('exportFilename') + '_' + new Date().toISOString().slice(0, 10) + '.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+renderHistoryDropdown();
+</script>
+
+</body>
+</html>

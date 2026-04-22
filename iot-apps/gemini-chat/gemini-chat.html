@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KI-Assistent – Thermokon IoT</title>
+    <link rel="stylesheet" href="../../style.css">
+    <script src="../../assets/header.js"></script>
+    <!-- marked.js: Markdown → HTML für formatierte Gemini-Antworten -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+/* ==== PASSWORT-SCHUTZ ==== */
+#pwOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(245, 245, 245, 0.97);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+#pwOverlay.hidden {
+    display: none;
+}
+.pw-card {
+    background: white;
+    border-radius: 12px;
+    padding: 40px 48px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    max-width: 380px;
+    width: 90%;
+}
+.pw-logo {
+    height: 44px;
+}
+.pw-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #d32f2f;
+    margin: 0;
+    text-align: center;
+}
+.pw-subtitle {
+    font-size: 13px;
+    color: #888;
+    margin: -12px 0 0 0;
+    text-align: center;
+}
+.pw-input-row {
+    display: flex;
+    width: 100%;
+    gap: 8px;
+}
+.pw-input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: Arial, sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.pw-input:focus {
+    border-color: #d32f2f;
+    box-shadow: 0 0 0 3px rgba(211,47,47,0.1);
+}
+.pw-input.error {
+    border-color: #d32f2f;
+    animation: pwShake 0.35s ease;
+}
+.pw-btn {
+    padding: 10px 20px;
+    background: #d32f2f;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-top: 0;
+    white-space: nowrap;
+}
+.pw-btn:hover {
+    background: #b71c1c;
+}
+.pw-error {
+    font-size: 13px;
+    color: #d32f2f;
+    font-weight: 600;
+    min-height: 1.2em;
+    text-align: center;
+}
+@keyframes pwShake {
+    0%,100% { transform: translateX(0); }
+    25%      { transform: translateX(-6px); }
+    75%      { transform: translateX(6px); }
+}
+
+/* ==== TOOLBAR: PDF + URL ==== */
+.gemini-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 12px;
+    margin-bottom: 4px;
+}
+
+/* Drag-&-Drop Zone */
+.gemini-drop-zone {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 2px dashed #e0e0e0;
+    border-radius: 8px;
+    padding: 10px 14px;
+    background: #fafafa;
+    font-size: 13px;
+    color: #888;
+    transition: border-color 0.2s, background 0.2s;
+    cursor: default;
+    flex-wrap: wrap;
+}
+.gemini-drop-zone.drag-over {
+    border-color: #d32f2f;
+    background: #fff5f5;
+    color: #d32f2f;
+}
+.gemini-drop-zone.has-file {
+    border-color: #28a745;
+    background: #f0fff4;
+    color: #28a745;
+}
+.gemini-file-label {
+    background: #d32f2f;
+    color: white;
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+}
+.gemini-file-label:hover {
+    background: #b71c1c;
+}
+.gemini-file-name {
+    font-weight: 600;
+    color: #28a745;
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 200px;
+}
+.gemini-remove-file {
+    background: none;
+    border: none;
+    color: #d32f2f;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 0 4px;
+    margin: 0;
+    line-height: 1;
+}
+
+/* URL Grounding Row (fix) */
+.gemini-url-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f0f7ff;
+    border: 2px solid #007bff;
+    border-radius: 8px;
+    padding: 6px 12px;
+}
+.gemini-url-icon {
+    font-size: 16px;
+    flex: 0 0 auto;
+}
+.gemini-url-fixed-label {
+    font-size: 12px;
+    color: #555;
+    font-style: italic;
+}
+.gemini-url-fixed-label strong {
+    color: #007bff;
+    font-style: normal;
+}
+
+/* System-Prompt Textfeld */
+.gemini-sysprompt {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.gemini-sysprompt-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+.gemini-sysprompt-textarea {
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-family: Arial, sans-serif;
+    color: #555;
+    background: #fafafa;
+    resize: vertical;
+    min-height: 40px;
+    outline: none;
+    transition: border-color 0.2s;
+    line-height: 1.5;
+}
+.gemini-sysprompt-textarea:focus {
+    border-color: #d32f2f;
+    box-shadow: 0 0 0 3px rgba(211,47,47,0.08);
+}
+
+/* Quellen-Links unter KI-Antwort */
+.gemini-sources {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid #e0e0e0;
+    font-size: 12px;
+    color: #666;
+}
+.gemini-sources-title {
+    font-weight: 700;
+    color: #007bff;
+    margin-bottom: 4px;
+}
+.gemini-sources a {
+    display: block;
+    color: #007bff;
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+    padding: 2px 0;
+}
+.gemini-sources a:hover {
+    text-decoration: underline;
+    color: #0056b3;
+}
+.gemini-source-item {
+    padding: 4px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+.gemini-source-item:last-child {
+    border-bottom: none;
+}
+.gemini-source-desc {
+    font-size: 11px;
+    color: #888;
+    font-style: italic;
+    margin: 2px 0 0 0;
+    line-height: 1.4;
+}
+.gemini-url-hint {
+    font-size: 11px;
+    color: #aaa;
+    font-style: italic;
+    margin-top: 2px;
+}
+
+.gemini-btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: stretch;
+}
+.gemini-stop-btn {
+    background: white;
+    color: #d32f2f;
+    border: 2px solid #d32f2f;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+    margin-top: 0;
+}
+.gemini-stop-btn:hover {
+    background: #d32f2f;
+    color: white;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .gemini-drop-zone { flex-wrap: wrap; }
+    .gemini-file-name { max-width: 130px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ==== PASSWORT-OVERLAY ==== -->
+<div id="pwOverlay">
+    <div class="pw-card">
+        <img src="https://www.thermokon.de/typo3conf/ext/tm_thermokon/Resources/Public/Img/thermokon_logo.svg"
+             alt="Thermokon" class="pw-logo">
+        <p class="pw-title" id="pwTitle">KI-Assistent</p>
+        <p class="pw-subtitle" id="pwSubtitle">Bitte Passwort eingeben</p>
+        <div class="pw-input-row">
+            <input type="password" id="pwInput" class="pw-input"
+                   placeholder="Passwort" autocomplete="current-password"
+                   onkeydown="if(event.key==='Enter') checkPassword()">
+            <button class="pw-btn" id="pwBtn" onclick="checkPassword()">&#10140;</button>
+        </div>
+        <p class="pw-error" id="pwError"></p>
+    </div>
+</div>
+
+<script>
+// ==== PASSWORT-SCHUTZ ====
+// Das Passwort ist hier statisch im Frontend gespeichert.
+// Für erhöhte Sicherheit: Prüfung serverseitig verlagern (POST /api/auth).
+const _PW_HASH = '9d2a4f6b1c8e3d7f5a0b2e4c6d8f1a3b5c7e9d2a4f6b1c8e3d7f5a0b2e4c6d'; // SHA-256 Platzhalter – wird unten mit SubtleCrypto verglichen
+
+async function _sha256(str) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+// Gespeicherten Session-Status prüfen
+(async function initPwGate() {
+    if (sessionStorage.getItem('gemini-auth') === await _sha256('Thermokon')) {
+        document.getElementById('pwOverlay').classList.add('hidden');
+    } else {
+        setTimeout(() => document.getElementById('pwInput').focus(), 100);
+    }
+})();
+
+async function checkPassword() {
+    const val   = document.getElementById('pwInput').value;
+    const input = document.getElementById('pwInput');
+    const err   = document.getElementById('pwError');
+    const hash  = await _sha256(val);
+    const correct = await _sha256('Thermokon');
+    if (hash === correct) {
+        sessionStorage.setItem('gemini-auth', hash);
+        document.getElementById('pwOverlay').classList.add('hidden');
+        document.getElementById('userInput').focus();
+    } else {
+        input.classList.add('error');
+        const lang = (typeof currentLanguage !== 'undefined') ? currentLanguage : 'de';
+        err.textContent = geminiTranslations[lang].pwError;
+        setTimeout(() => input.classList.remove('error'), 400);
+        input.value = '';
+        input.focus();
+    }
+}
+</script>
+
+<script>
+renderHeader({
+    title: 'KI-Assistent',
+    activeId: 'gemini-chat',
+    basePath: '../../',
+});
+</script>
+
+<div class="gemini-wrapper">
+    <div class="gemini-container">
+
+        <!-- Lade-Indikator: pulsierendes Thermokon-Logo -->
+        <div class="gemini-loading" id="geminiLoading">
+            <img
+                src="https://www.thermokon.de/typo3conf/ext/tm_thermokon/Resources/Public/Img/thermokon_logo.svg"
+                alt="KI denkt nach…"
+                class="gemini-loading-logo"
+            >
+            <p id="geminiLoadingText">KI denkt nach…</p>
+        </div>
+
+        <!-- Antwort-Bereich (Chatverlauf) -->
+        <div class="gemini-response-area" id="responseArea">
+            <div class="gemini-welcome" id="geminiWelcome">
+                <span class="gemini-welcome-icon">🤖</span>
+                <p id="geminiWelcomeText">Hallo! Ich bin der Thermokon KI-Assistent, powered by Google Gemini.<br>
+                Stellen Sie mir eine Frage – z.&nbsp;B. zu Sensorprotokollen, LoRaWAN oder Thermokon-Produkten.</p>
+                <small class="gemini-hint" id="geminiHintText">Tipp: <kbd>Strg</kbd> + <kbd>Enter</kbd> sendet die Nachricht.</small>
+            </div>
+        </div>
+
+        <!-- Toolbar: PDF-Upload + URL-Grounding -->
+        <div class="gemini-toolbar" id="geminiToolbar">
+
+            <!-- PDF Drag-&-Drop Zone -->
+            <div class="gemini-drop-zone" id="dropZone"
+                 ondragover="event.preventDefault(); this.classList.add('drag-over')"
+                 ondragleave="this.classList.remove('drag-over')"
+                 ondrop="handleDrop(event)">
+                <span id="dropZoneIcon">📄</span>
+                <span id="dropZoneText">PDF, TXT, XLSX oder CSV hierher ziehen oder</span>
+                <input type="file" id="pdfFileInput" accept=".pdf,.txt,.csv,.xlsx" style="display:none"
+                       onchange="handleFileSelect(event)">
+                <label class="gemini-file-label" id="dropZoneBtn" for="pdfFileInput">Datei w&#228;hlen</label>
+                <span class="gemini-file-name" id="pdfFileName"></span>
+                <button class="gemini-remove-file" id="removePdfBtn" onclick="removePdf()" style="display:none">✕</button>
+            </div>
+
+            <!-- URL-Grounding (fest verdrahtet) -->
+            <div class="gemini-url-row gemini-url-row--fixed">
+                <span class="gemini-url-icon">🔍</span>
+                <span class="gemini-url-fixed-label" id="groundingFixedLabel">Suche beschränkt auf: <strong>thermokon.de/direct/</strong></span>
+            </div>
+
+            <!-- System-Prompt (statisch, editierbar) -->
+            <div class="gemini-sysprompt">
+                <label class="gemini-sysprompt-label" id="sysPromptLabel">📋 System-Prompt</label>
+                <textarea id="sysPromptInput" class="gemini-sysprompt-textarea" rows="2"
+>Bitte beantworte diese Frage immer im Kontext der Thermokon Sensortechnik GmbH. Du bist eine Hilfe bei der Suche durch das Produktportfolio. Wenn du eine konkrete Nummer genannt bekommst, schaue nach ob diese eine Artikelnummer ist. Wenn du einen eindeutigen Artikel findest, liste bitte immer in einer Übersicht die Artikeldetails auf (Preis, Rabattgruppe, etc.).
+
+Es geht immer darum, dass jmd. sich im Produktportfolio orientieren möchte. Ggf. weiß er genau was gesucht wird ggf. aber auch nicht. Schlage gerne auch weiterführende oder alternative Produkte vor.</textarea>
+            </div>
+
+        </div>
+
+        <!-- Eingabe-Bereich -->
+        <div class="gemini-input-area">
+            <textarea
+                id="userInput"
+                class="gemini-textarea"
+                placeholder="Ihre Frage eingeben … (Strg+Enter zum Senden)"
+                rows="3"
+            ></textarea>
+            <div class="gemini-btn-group">
+                <button id="sendBtn" class="gemini-send-btn" onclick="sendMessage()">Senden ➤</button>
+                <button id="stopBtn" class="gemini-stop-btn" onclick="stopMessage()" style="display:none">⏹ Stop</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+// ==== SPRACH-SYSTEM ====
+const geminiTranslations = {
+    de: {
+        mainTitle:    'KI-Assistent',
+        loadingText:  'KI denkt nach…',
+        welcomeText:  'Hallo! Ich bin der Thermokon KI-Assistent, powered by Google Gemini.<br>Stellen Sie mir eine Frage – z.\u00a0B. zu Sensorprotokollen, LoRaWAN oder Thermokon-Produkten.',
+        hintText:     'Tipp: <kbd>Strg</kbd> + <kbd>Enter</kbd> sendet die Nachricht.',
+        placeholder:  'Ihre Frage eingeben … (Strg+Enter zum Senden)',
+        sendBtn:      'Senden ➤',
+        stopBtn:      '⏹ Stop',
+        errHint:      'Bitte prüfen Sie den API-Key und die Internetverbindung.',
+        dropText:     'PDF, TXT, XLSX oder CSV hierher ziehen oder',
+        dropBtn:      'Datei wählen',
+        pwTitle:      'KI-Assistent',
+        pwSubtitle:   'Bitte Passwort eingeben',
+        pwPlaceholder:'Passwort',
+        pwError:      'Falsches Passwort. Bitte erneut versuchen.',
+        groundingLabel:'Suche beschränkt auf:',
+        sysPromptLabel:'📋 System-Prompt',
+        sourcesTitle:  '🔗 Quellen (Google Search)',
+        pdfOnlyAlert:  'Bitte nur PDF, TXT, XLSX oder CSV-Dateien hochladen.',
+        pdfLoadedText: 'Datei geladen:',
+        abortText:     '⏹ Anfrage gestoppt.',
+        pdfUploading:  '📄 Datei wird hochgeladen…',
+    },
+    en: {
+        mainTitle:    'AI Assistant',
+        loadingText:  'AI is thinking…',
+        welcomeText:  'Hello! I am the Thermokon AI Assistant, powered by Google Gemini.<br>Ask me a question – e.\u00a0g. about sensor protocols, LoRaWAN or Thermokon products.',
+        hintText:     'Tip: <kbd>Ctrl</kbd> + <kbd>Enter</kbd> sends the message.',
+        placeholder:  'Enter your question … (Ctrl+Enter to send)',
+        sendBtn:      'Send ➤',
+        stopBtn:      '⏹ Stop',
+        errHint:      'Please check the API key and your internet connection.',
+        dropText:     'Drag PDF, TXT, XLSX or CSV here or',
+        dropBtn:      'Choose file',
+        pwTitle:      'AI Assistant',
+        pwSubtitle:   'Please enter password',
+        pwPlaceholder:'Password',
+        pwError:      'Incorrect password. Please try again.',
+        groundingLabel:'Search limited to:',
+        sysPromptLabel:'📋 System Prompt',
+        sourcesTitle:  '🔗 Sources (Google Search)',
+        pdfOnlyAlert:  'Please upload PDF, TXT, XLSX or CSV files only.',
+        pdfLoadedText: 'File loaded:',
+        abortText:     '⏹ Request stopped.',
+        pdfUploading:  '📄 Uploading file…',
+    }
+};
+
+function updateGeminiUI() {
+    const s = geminiTranslations[currentLanguage];
+    document.getElementById('mainTitle').textContent         = s.mainTitle;
+    document.getElementById('geminiLoadingText').textContent = s.loadingText;
+    const wt = document.getElementById('geminiWelcomeText');
+    if (wt) wt.innerHTML = s.welcomeText;
+    const ht = document.getElementById('geminiHintText');
+    if (ht) ht.innerHTML = s.hintText;
+    document.getElementById('userInput').placeholder         = s.placeholder;
+    document.getElementById('sendBtn').textContent           = s.sendBtn;
+    document.getElementById('stopBtn').textContent           = s.stopBtn;
+    // Passwort-Overlay
+    document.getElementById('pwTitle').textContent           = s.pwTitle;
+    document.getElementById('pwSubtitle').textContent        = s.pwSubtitle;
+    document.getElementById('pwInput').placeholder           = s.pwPlaceholder;
+    // Grounding-Label
+    document.getElementById('groundingFixedLabel').innerHTML = s.groundingLabel + ' <strong>thermokon.de/direct/</strong>';
+    // System-Prompt Label
+    document.getElementById('sysPromptLabel').textContent    = s.sysPromptLabel;
+    // Drop-Zone Text nur wenn kein PDF geladen
+    if (!document.getElementById('dropZone').classList.contains('has-file')) {
+        document.getElementById('dropZoneText').textContent  = s.dropText;
+        document.getElementById('dropZoneBtn').textContent    = s.dropBtn;
+    }
+}
+
+window.onLanguageChange = updateGeminiUI;
+updateGeminiUI();
+</script>
+
+<!-- ============================================================
+     GOOGLE GEMINI API – ESM-Modul-Integration
+     Kein lokales npm / Node.js erforderlich – Import direkt aus CDN.
+============================================================ -->
+<script type="module">
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  ⚠️  SICHERHEITSWARNUNG – BITTE VOR PRODUKTIVEINSATZ LESEN  ⚠️  ║
+// ╠══════════════════════════════════════════════════════════════════╣
+// ║                                                                  ║
+// ║  Der API-Key ist hier im Frontend-Quelltext eingebettet.         ║
+// ║  Jeder, der "Quelltext anzeigen" klickt, kann ihn lesen!         ║
+// ║                                                                  ║
+// ║  FÜR DEN PRODUKTIVEINSATZ (öffentliche Website) GILT:            ║
+// ║  ─────────────────────────────────────────────────────────────   ║
+// ║  1. Erstelle einen Backend-Server (Node.js/Express, Python/      ║
+// ║     FastAPI, PHP, etc.).                                         ║
+// ║  2. Speichere den Key NUR als Umgebungsvariable auf dem Server   ║
+// ║     (z.B. process.env.GEMINI_API_KEY – NIEMALS in Code-Dateien). ║
+// ║  3. Das Frontend sendet Nutzereingaben an DEIN Backend           ║
+// ║     (POST /api/chat) – NICHT direkt an Google.                   ║
+// ║  4. Das Backend ruft Gemini auf, gibt die Antwort zurück.        ║
+// ║     → Der API-Key verlässt den Server NIEMALS.                   ║
+// ║                                                                  ║
+// ║  Für rein lokale / interne Nutzung (kein öffentlicher Zugriff)   ║
+// ║  ist der direkte Key temporär akzeptabel.                        ║
+// ║                                                                  ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+const API_KEY = "AQ.Ab8RN6JCiw-Lh8vrjv3b5TWXZrdE_CgALeVB-bBuSNcbZT3d7w"; // ← Gemini API-Key (nur für lokale/interne Nutzung – siehe Sicherheitshinweis oben)
+
+// ── Gemini SDK laden (via ESM CDN – kein npm / Node.js nötig) ──────
+import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
+
+const genAI = new GoogleGenerativeAI(API_KEY);
+
+// ── Zustand ────────────────────────────────────────────────────────
+let currentPdfFile   = null;   // File-Objekt der ausgewählten PDF
+let uploadedFileUri  = null;   // Hochgeladene File-API URI (nach Upload)
+let uploadedMime     = null;   // MIME-Typ des hochgeladenen PDFs
+let chatHistory      = [];     // Manuell verwalteter Chat-Verlauf
+let currentAbort     = null;   // AbortController für laufende Anfrage
+
+// ── Hilfsfunktionen UI ─────────────────────────────────────────────
+
+function setLoading(on) {
+    document.getElementById('geminiLoading').style.display = on ? 'flex' : 'none';
+    document.getElementById('sendBtn').disabled    = on;
+    document.getElementById('sendBtn').style.display  = on ? 'none' : '';
+    document.getElementById('stopBtn').style.display  = on ? 'inline-flex' : 'none';
+}
+
+function hideWelcome() {
+    const w = document.getElementById('geminiWelcome');
+    if (w) w.remove();
+}
+
+function appendBubble(role, text) {
+    const area   = document.getElementById('responseArea');
+    const bubble = document.createElement('div');
+    bubble.className = `gemini-bubble gemini-bubble--${role}`;
+    if (role === 'user') {
+        bubble.textContent = text;
+    } else {
+        bubble.innerHTML = marked.parse(text);
+    }
+    area.appendChild(bubble);
+    area.scrollTop = area.scrollHeight;
+    return bubble;
+}
+
+function appendSources(parentBubble, sources, supports) {
+    if (!sources || sources.length === 0) return;
+
+    // Sammle Textauszüge pro Quell-Index aus groundingSupports
+    const snippets = {};
+    if (supports && supports.length) {
+        supports.forEach(sup => {
+            const text = sup.segment?.text || '';
+            if (!text) return;
+            (sup.groundingChunkIndices || []).forEach(idx => {
+                if (!snippets[idx]) snippets[idx] = [];
+                if (snippets[idx].length < 2 && !snippets[idx].includes(text)) {
+                    snippets[idx].push(text.length > 120 ? text.slice(0, 117) + '…' : text);
+                }
+            });
+        });
+    }
+
+    const div = document.createElement('div');
+    div.className = 'gemini-sources';
+    const _sl = (typeof currentLanguage !== 'undefined') ? currentLanguage : 'de';
+    div.innerHTML = `<div class="gemini-sources-title">${geminiTranslations[_sl].sourcesTitle}</div>`;
+    sources.forEach((s, idx) => {
+        const item = document.createElement('div');
+        item.className = 'gemini-source-item';
+        const a = document.createElement('a');
+        a.href   = s.uri;
+        a.target = '_blank';
+        a.rel    = 'noopener noreferrer';
+        a.textContent = s.title || s.uri;
+        item.appendChild(a);
+        // Kurzbeschreibung hinzufügen
+        const desc = snippets[idx];
+        if (desc && desc.length) {
+            const p = document.createElement('p');
+            p.className = 'gemini-source-desc';
+            p.textContent = desc.join(' | ');
+            item.appendChild(p);
+        }
+        div.appendChild(item);
+    });
+    parentBubble.appendChild(div);
+}
+
+// ── PDF: Drag & Drop + Dateiauswahl ───────────────────────────────
+
+const ALLOWED_TYPES = {
+    'application/pdf': '.pdf',
+    'text/plain': '.txt',
+    'text/csv': '.csv',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+};
+const ALLOWED_EXTENSIONS = ['.pdf', '.txt', '.csv', '.xlsx'];
+
+function isFileAllowed(file) {
+    if (ALLOWED_TYPES[file.type]) return true;
+    const ext = '.' + file.name.split('.').pop().toLowerCase();
+    return ALLOWED_EXTENSIONS.includes(ext);
+}
+
+function getFileMime(file) {
+    if (ALLOWED_TYPES[file.type]) return file.type;
+    const ext = '.' + file.name.split('.').pop().toLowerCase();
+    const mimeMap = { '.pdf': 'application/pdf', '.txt': 'text/plain', '.csv': 'text/csv', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
+    return mimeMap[ext] || file.type;
+}
+
+window.handleDrop = function(e) {
+    e.preventDefault();
+    document.getElementById('dropZone').classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file && isFileAllowed(file)) {
+        setPdfFile(file);
+    } else {
+        const _l = (typeof currentLanguage !== 'undefined') ? currentLanguage : 'de';
+        alert(geminiTranslations[_l].pdfOnlyAlert);
+    }
+};
+
+window.handleFileSelect = function(e) {
+    const file = e.target.files[0];
+    if (file) setPdfFile(file);
+};
+
+function setPdfFile(file) {
+    currentPdfFile  = file;
+    uploadedFileUri = null; // Neu hochladen beim nächsten Senden
+    uploadedMime    = null;
+    const nameEl = document.getElementById('pdfFileName');
+    nameEl.textContent = file.name;
+    document.getElementById('dropZone').classList.add('has-file');
+    document.getElementById('removePdfBtn').style.display = 'inline-flex';
+    document.getElementById('dropZoneIcon').textContent   = '✅';
+    const _lang = (typeof currentLanguage !== 'undefined') ? currentLanguage : 'de';
+    document.getElementById('dropZoneText').textContent   = geminiTranslations[_lang].pdfLoadedText;
+    document.getElementById('dropZoneBtn').style.display  = 'none';
+}
+
+window.removePdf = function() {
+    currentPdfFile  = null;
+    uploadedFileUri = null;
+    uploadedMime    = null;
+    document.getElementById('pdfFileName').textContent    = '';
+    document.getElementById('dropZone').classList.remove('has-file');
+    document.getElementById('removePdfBtn').style.display = 'none';
+    document.getElementById('dropZoneIcon').textContent   = '📄';
+    const lang = (typeof currentLanguage !== 'undefined') ? currentLanguage : 'de';
+    document.getElementById('dropZoneText').textContent   = geminiTranslations[lang].dropText;
+    document.getElementById('dropZoneBtn').style.display  = '';
+    document.getElementById('pdfFileInput').value = '';
+};
+
+// ── PDF-Upload via Gemini File API (multipart/form-data, kein SDK nötig) ──
+
+async function uploadPdfIfNeeded() {
+    if (!currentPdfFile) return null;
+    if (uploadedFileUri)  return { fileUri: uploadedFileUri, mimeType: uploadedMime };
+
+    // Gemini File API: erst initialen Upload-Request stellen
+    const startRes = await fetch(
+        `https://generativelanguage.googleapis.com/upload/v1beta/files?key=${API_KEY}`,
+        {
+            method: 'POST',
+            headers: {
+                'X-Goog-Upload-Protocol': 'multipart',
+                'Content-Type': 'application/json',
+            },
+            // Multipart-Body manuell aufbauen
+            body: (() => {
+                const boundary = '----GeminiBoundary' + Date.now();
+                const meta = JSON.stringify({ file: { display_name: currentPdfFile.name } });
+                // Wir nutzen FormData für den einfachen multipart-Upload
+                return undefined; // Platzhalter – wird unten durch FormData ersetzt
+            })()
+        }
+    );
+    // Einfacherer Weg: direkter multipart-Upload via FormData
+    const formData = new FormData();
+    formData.append('metadata', new Blob(
+        [JSON.stringify({ file: { display_name: currentPdfFile.name } })],
+        { type: 'application/json' }
+    ));
+    formData.append('file', currentPdfFile, currentPdfFile.name);
+
+    const uploadRes = await fetch(
+        `https://generativelanguage.googleapis.com/upload/v1beta/files?key=${API_KEY}&uploadType=multipart`,
+        { method: 'POST', body: formData }
+    );
+    if (!uploadRes.ok) {
+        const err = await uploadRes.json();
+        throw new Error('PDF-Upload fehlgeschlagen: ' + (err.error?.message || uploadRes.status));
+    }
+    const uploaded = await uploadRes.json();
+    uploadedFileUri = uploaded.file.uri;
+    uploadedMime    = getFileMime(currentPdfFile);
+    return { fileUri: uploadedFileUri, mimeType: uploadedMime };
+}
+
+// ── URL-Grounding (fix: nur thermokon.de/direct/ und Unterseiten) ──
+const GROUNDING_URL    = 'https://www.thermokon.de/direct/';
+const GROUNDING_DOMAIN = 'www.thermokon.de/direct';
+
+window.stopMessage = function () {
+    if (currentAbort) {
+        currentAbort.abort();
+        currentAbort = null;
+    }
+};
+
+// ── Hauptfunktion: Nachricht senden ────────────────────────────
+
+window.sendMessage = async function () {
+    const input      = document.getElementById('userInput');
+    const promptText = input.value.trim();
+    if (!promptText) return;
+
+    hideWelcome();
+    input.value = '';
+    setLoading(true);
+    currentAbort = new AbortController();
+    const signal = currentAbort.signal;
+
+    // Feste Prompt-Instruktion: nur thermokon.de/direct/ und Unterseiten
+    const domainInstruction = `[WICHTIG: Beantworte die Frage ausschließlich mit Informationen von "${GROUNDING_URL}" und deren Unterseiten. Falls du dort keine passenden Informationen findest, teile das dem Nutzer mit.]\n\n`;
+
+    // System-Prompt aus dem Textfeld
+    const sysPrompt = (document.getElementById('sysPromptInput').value || '').trim();
+    const sysPrefix = sysPrompt ? `[System-Anweisung: ${sysPrompt}]\n\n` : '';
+
+    const finalPrompt = sysPrefix + domainInstruction + promptText;
+
+    // Benutzernachricht anzeigen (ohne die versteckte Instruktion)
+    const area = document.getElementById('responseArea');
+    const userBubble = document.createElement('div');
+    userBubble.className = 'gemini-bubble gemini-bubble--user';
+    userBubble.textContent = promptText;
+    area.appendChild(userBubble);
+    area.scrollTop = area.scrollHeight;
+
+    const aiBubble = document.createElement('div');
+    aiBubble.className = 'gemini-bubble gemini-bubble--ai';
+    area.appendChild(aiBubble);
+
+    try {
+        // PDF ggf. hochladen
+        let filePart = null;
+        if (currentPdfFile) {
+            const _ul = (typeof currentLanguage !== 'undefined') ? currentLanguage : 'de';
+            aiBubble.innerHTML = `<em style="color:#888">${geminiTranslations[_ul].pdfUploading}</em>`;
+            filePart = await uploadPdfIfNeeded();
+        }
+
+        // Modell mit oder ohne Google Search Grounding
+        const useGrounding = true; // immer aktiv (fest: thermokon.de/direct/)
+        const modelConfig  = { model: 'gemini-2.5-flash-lite' };
+
+        // Google Search Grounding aktivieren wenn URL angegeben
+        // Hinweis: Grounding über das JS-SDK hat eingeschränkten Support im ESM-Bundle;
+        // wir nutzen daher die REST API direkt wenn Grounding aktiv ist.
+        if (useGrounding || filePart) {
+            // ── REST API direkt (unterstützt File-Parts + Grounding) ──────
+            const parts = [];
+            if (filePart) {
+                parts.push({ file_data: { mime_type: filePart.mimeType, file_uri: filePart.fileUri } });
+            }
+            parts.push({ text: finalPrompt });
+
+            // Verlauf + neue Nachricht
+            const contents = [
+                ...chatHistory,
+                { role: 'user', parts }
+            ];
+
+            const requestBody = {
+                contents,
+                generationConfig: { maxOutputTokens: 2048 },
+            };
+
+            // Google Search Grounding einhängen
+            if (useGrounding) {
+                requestBody.tools = [{ google_search: {} }];
+                // Hinweis: Die Domain-Einschränkung erfolgt über die Prompt-Instruktion oben,
+                // da die Gemini API keine native allowedDomains-Option für Grounding bietet.
+            }
+
+            const resp = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${API_KEY}`,
+                {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify(requestBody),
+                    signal,
+                }
+            );
+            if (!resp.ok) {
+                const e = await resp.json();
+                throw new Error(e.error?.message || resp.status);
+            }
+            const data       = await resp.json();
+            const candidate  = data.candidates?.[0];
+            const fullText   = candidate?.content?.parts?.map(p => p.text || '').join('') || '';
+
+            aiBubble.innerHTML = marked.parse(fullText);
+
+            // Quellen aus Grounding-Metadaten extrahieren
+            const gm = candidate?.groundingMetadata;
+            const sources = gm?.groundingChunks
+                ?.map(c => c.web)
+                .filter(Boolean) || [];
+            const supports = gm?.groundingSupports || [];
+            appendSources(aiBubble, sources, supports);
+
+            // Chat-Verlauf aktualisieren
+            chatHistory.push({ role: 'user',  parts: [{ text: finalPrompt }] });
+            chatHistory.push({ role: 'model', parts: [{ text: fullText    }] });
+
+        } else {
+            // ── SDK Streaming (ohne Grounding, ohne PDF = schnellster Weg) ──
+            const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+            const chat  = model.startChat({
+                history: chatHistory.map(h => ({ role: h.role, parts: h.parts })),
+                generationConfig: { maxOutputTokens: 2048 },
+            });
+
+            const result = await chat.sendMessageStream(finalPrompt);
+            let fullText = '';
+            for await (const chunk of result.stream) {
+                fullText += chunk.text();
+                aiBubble.innerHTML = marked.parse(fullText);
+                area.scrollTop = area.scrollHeight;
+            }
+            chatHistory.push({ role: 'user',  parts: [{ text: finalPrompt }] });
+            chatHistory.push({ role: 'model', parts: [{ text: fullText    }] });
+        }
+
+        area.scrollTop = area.scrollHeight;
+
+    } catch (err) {
+        if (err.name === 'AbortError') {
+            const _al = (typeof currentLanguage !== 'undefined') ? currentLanguage : 'de';
+            aiBubble.innerHTML += `<span class="gemini-error" style="font-size:12px"> ${geminiTranslations[_al].abortText}</span>`;
+        } else {
+            const errHint = (typeof geminiTranslations !== 'undefined')
+                ? geminiTranslations[currentLanguage].errHint
+                : 'Please check the API key and your internet connection.';
+            aiBubble.innerHTML =
+                `<span class="gemini-error">⚠️ ${err.message}<br>${errHint}</span>`;
+        }
+    } finally {
+        currentAbort = null;
+        setLoading(false);
+        input.focus();
+    }
+};
+
+function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Tastenkürzel: Strg + Enter sendet ──────────────────────────────
+document.getElementById('userInput').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && e.ctrlKey) {
+        e.preventDefault();
+        window.sendMessage();
+    }
+});
+
+</script>
+
+</body>
+</html>

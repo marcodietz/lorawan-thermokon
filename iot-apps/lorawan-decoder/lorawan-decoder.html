@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LoRaWAN Payload Decoder Tester</title>
+    <link rel="stylesheet" href="../../style.css">
+    <script src="../../assets/header.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+
+        .container {
+            max-width: 1200px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .panel {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        .panel.full-width {
+            grid-column: 1 / -1;
+        }
+        label {
+            font-size: 13px;
+            font-weight: 700;
+            color: #d32f2f;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        textarea, input[type="text"] {
+            background: #fafafa;
+            color: #333;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
+            font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+            font-size: 13px;
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        textarea:focus, input[type="text"]:focus {
+            border-color: #007bff;
+        }
+        #decoderCode {
+            flex: 1;
+            min-height: 400px;
+        }
+        #output {
+            flex: 1;
+            min-height: 400px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            border-left: 4px solid #d32f2f;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+        .input-row {
+            display: flex;
+            gap: 15px;
+            align-items: end;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+        .input-group.small {
+            flex: 0 0 120px;
+        }
+        input[type="text"] {
+            height: 42px;
+        }
+        button {
+            height: 42px;
+            padding: 0 20px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            border-radius: 5px;
+            border: none;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        .btn-primary {
+            background: #d32f2f;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #b71c1c;
+            box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
+        }
+        .btn-secondary {
+            background: white;
+            color: #333;
+            border: 2px solid #ddd;
+        }
+        .btn-secondary:hover {
+            border-color: #007bff;
+            color: #007bff;
+        }
+        .btn-save {
+            height: 32px;
+            padding: 0 12px;
+            background: #28a745;
+            color: white;
+            font-size: 12px;
+        }
+        .btn-save:hover {
+            background: #218838;
+            box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+        }
+        .btn-delete {
+            height: 32px;
+            width: 32px;
+            padding: 0;
+            background: white;
+            color: #888;
+            border: 1px solid #ddd;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-delete:hover {
+            border-color: #d32f2f;
+            color: #d32f2f;
+        }
+        .save-status {
+            font-size: 11px;
+            color: #28a745;
+            font-weight: 600;
+            opacity: 0;
+            transition: opacity 0.3s;
+            margin-left: 8px;
+        }
+        .save-status.visible { opacity: 1; }
+        .library-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+        .library-bar label { margin-bottom: 0; flex-shrink: 0; }
+        .library-select {
+            height: 32px;
+            padding: 0 8px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            background: white;
+            cursor: pointer;
+            outline: none;
+            min-width: 180px;
+            max-width: 300px;
+            transition: border-color 0.2s;
+        }
+        .library-select:focus, .library-select:hover { border-color: #007bff; }
+        .library-select option { font-weight: normal; }
+        .library-actions {
+            display: flex;
+            gap: 5px;
+            margin-left: auto;
+        }
+        .btn-lib {
+            height: 32px;
+            padding: 0 10px;
+            font-size: 12px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-lib-save { background: #28a745; color: white; }
+        .btn-lib-save:hover { background: #218838; }
+        .btn-lib-new { background: #007bff; color: white; }
+        .btn-lib-new:hover { background: #0056b3; }
+        .btn-lib-rename { background: #e9ecef; color: #555; }
+        .btn-lib-rename:hover { background: #dee2e6; color: #333; }
+        .btn-lib-delete { background: #e9ecef; color: #888; }
+        .btn-lib-delete:hover { background: #f8d7da; color: #d32f2f; }
+        .lib-slot-count {
+            font-size: 11px;
+            color: #aaa;
+            font-style: italic;
+            white-space: nowrap;
+        }
+        .history-container {
+            position: relative;
+            display: inline-block;
+        }
+        .btn-history {
+            height: 42px;
+            padding: 0 14px;
+            background: white;
+            color: #555;
+            border: 2px solid #ddd;
+            font-size: 13px;
+        }
+        .btn-history:hover {
+            border-color: #007bff;
+            color: #007bff;
+        }
+        .history-dropdown {
+            display: none;
+            position: absolute;
+            top: 46px;
+            right: 0;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            z-index: 300;
+            min-width: 320px;
+            max-width: 500px;
+            overflow: hidden;
+        }
+        .history-dropdown.open { display: block; }
+        .history-dropdown .history-title {
+            padding: 10px 14px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #d32f2f;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #eee;
+        }
+        .history-dropdown .history-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background 0.15s;
+            font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+            font-size: 12px;
+            color: #333;
+        }
+        .history-dropdown .history-item:last-child { border-bottom: none; }
+        .history-dropdown .history-item:hover { background: #f5f5f5; color: #007bff; }
+        .history-item-payload {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .history-item-meta {
+            font-size: 10px;
+            color: #aaa;
+            white-space: nowrap;
+            font-family: Arial, sans-serif;
+        }
+        .history-empty {
+            padding: 14px;
+            text-align: center;
+            color: #aaa;
+            font-size: 13px;
+            font-style: italic;
+        }
+        .status {
+            font-size: 13px;
+            margin-top: 8px;
+            min-height: 1.4em;
+            font-family: monospace;
+        }
+        .status.error { color: #d32f2f; font-weight: 600; }
+        .status.success { color: #28a745; font-weight: 600; }
+        .hint {
+            font-size: 12px;
+            color: #888;
+            margin-top: 6px;
+            font-style: italic;
+        }
+        .section-title {
+            margin-top: 0 !important;
+            margin-bottom: 8px !important;
+            padding: 10px 0;
+            border-top: 3px solid #d32f2f;
+            border-bottom: 1px solid #e0e0e0;
+            font-weight: 700;
+            font-size: 18px;
+            color: #d32f2f;
+            letter-spacing: 0.5px;
+        }
+        .sticky-output {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: #f5f5f5;
+            padding: 12px 0 8px 0;
+            margin-bottom: 15px;
+            max-width: 1200px;
+        }
+        .sticky-output .output-box {
+            padding: 15px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-left: 4px solid #d32f2f;
+            color: #333;
+            font-family: monospace;
+            word-break: break-all;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            font-size: 14px;
+            line-height: 1.6;
+            min-height: 44px;
+        }
+        .sticky-output h3 {
+            margin: 0 0 6px 0;
+            font-size: 14px;
+            color: #d32f2f;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .button-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+
+
+        @media (max-width: 768px) {
+            .container { grid-template-columns: 1fr; }
+            .input-row { flex-wrap: wrap; }
+            .input-group.small { flex: 1 1 100%; }
+            #decoderCode, #output { min-height: 250px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sticky-output">
+        <h3 id="dec-heading">Payload Eingabe</h3>
+        <div style="background:white; padding:15px; border-radius:10px;">
+            <div class="input-row">
+                <div class="input-group">
+                    <label for="payloadInput" id="dec-label-payload">Payload (Hex)</label>
+                    <input type="text" id="payloadInput" placeholder="z.B. 0102FF0A3D…">
+                </div>
+                <div class="input-group small">
+                    <label for="fPortInput">fPort</label>
+                    <input type="text" id="fPortInput" placeholder="z.B. 1" value="1">
+                </div>
+                <button class="btn-primary" id="dec-btn-decode" onclick="runDecoder()">▶ Decode</button>
+                <div class="history-container">
+                    <button class="btn-history" onclick="toggleHistory()" title="" id="dec-btn-history">🕘 Historie</button>
+                    <div class="history-dropdown" id="historyDropdown">
+                        <div class="history-title" id="dec-history-title">Letzte 5 Payloads</div>
+                        <div id="historyList"><div class="history-empty">Noch keine Payloads decodiert.</div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="hint" id="dec-hint"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="panel">
+            <div class="library-bar">
+                <label style="margin-bottom:0;" id="dec-label-library">📚 Decoder Library</label>
+                <select class="library-select" id="librarySelect" onchange="loadLibrarySlot(this.value)">
+                    <option value="-1">— Neuer Decoder (nicht gespeichert) —</option>
+                </select>
+                <span class="lib-slot-count" id="libSlotCount"></span>
+                <div class="library-actions">
+                    <button class="btn-lib btn-lib-save" onclick="saveToLibrary()" title="" id="dec-btn-save">💾 Speichern</button>
+                    <button class="btn-lib btn-lib-new" onclick="newDecoder()" title="" id="dec-btn-new">＋ Neu</button>
+                    <button class="btn-lib btn-lib-rename" onclick="renameLibrarySlot()" title="">✏️</button>
+                    <button class="btn-lib btn-lib-delete" onclick="deleteLibrarySlot()" title="">🗑️</button>
+                </div>
+            </div>
+            <textarea id="decoderCode" spellcheck="false" placeholder=""></textarea>
+        </div>
+        <div class="panel">
+            <label id="dec-label-output">Output</label>
+            <textarea id="output" readonly></textarea>
+            <div id="status" class="status"></div>
+        </div>
+    </div>
+
+    <script>
+        // ==== HEADER ====
+        renderHeader({
+            title: 'LoRaWAN Payload Decoder Tester',
+            activeId: 'lorawan-decoder',
+            basePath: '../../',
+        });
+
+        // ==== ÜBERSETZUNGEN ====
+        const decoderTranslations = {
+            de: {
+                heading:        'Payload Eingabe',
+                labelPayload:   'Payload (Hex)',
+                placeholder:    'z.B. 0102FF0A3D…',
+                fportPlaceholder: 'z.B. 1',
+                btnDecode:      '▶ Decode',
+                btnHistory:     '🕘 Historie',
+                historyTitle:   'Letzte 5 Payloads',
+                historyEmpty:   'Noch keine Payloads decodiert.',
+                hint:           'Hex-String ohne Leerzeichen oder Präfix eingeben. Shortcut: Ctrl+Enter',
+                labelLibrary:   '📚 Decoder Library',
+                btnSave:        '💾 Speichern',
+                btnNew:         '＋ Neu',
+                labelOutput:    'Output',
+                newDecoderOpt:  '— Neuer Decoder (nicht gespeichert) —',
+                errNoCode:      'Bitte Decoder-Code einfügen.',
+                errNoPayload:   'Bitte Payload eingeben.',
+                errNoFunction:  'Keine bekannte Decoder-Funktion gefunden (decodeUplink, Decode, Decoder)',
+                errHexOdd:      'Hex-String hat ungerade Länge',
+                errHexChars:    'Ungültige Hex-Zeichen',
+                errRuntime:     'Fehler beim Ausführen des Decoders',
+                successMsg:     (elapsed, bytes, fPort) => `Erfolgreich decodiert in ${elapsed} ms — ${bytes} Bytes, fPort ${fPort}`,
+                libSlots:       (n, max) => `${n}/${max} belegt`,
+                libSaved:       '✅ Gespeichert!',
+                libNoCode:      'Kein Decoder-Code vorhanden.',
+                libMaxSlots:    (max) => `Maximal ${max} Decoder können gespeichert werden. Bitte zuerst einen löschen.`,
+                libNamePrompt:  (n) => `Name für diesen Decoder: Decoder ${n}`,
+                libRenameTitle: 'Neuer Name:',
+                libNoSelect:    'Bitte zuerst einen gespeicherten Decoder aus der Library auswählen.',
+                libDeleteConfirm: (name) => `"${name}" wirklich aus der Library löschen?`,
+                historyClick:   'Klicken zum Übernehmen',
+                migrated:       'Decoder 1 (migriert)',
+                titleSave:      'Aktuellen Decoder speichern (Ctrl+S)',
+                titleRename:    'Decoder umbenennen',
+                titleDelete:    'Decoder aus Library löschen',
+                titleHistory:   'Letzte Payloads',
+                titleNew:       'Neuen leeren Decoder anlegen',
+                decoderPlaceholder: `// Decoder-Funktion hier einfügen, z.B.:
+//
+// function decodeUplink(input) {
+//   var bytes = input.bytes;
+//   var fPort = input.fPort;
+//   return { data: { temperature: bytes[0] } };
+// }
+//
+// Unterstützt werden:
+//   decodeUplink(input)     — LoRaWAN Codec API v2
+//   Decode(fPort, bytes)    — TTN v2 style
+//   Decoder(bytes, port)    — TTN v2 alt`,
+            },
+            en: {
+                heading:        'Payload Input',
+                labelPayload:   'Payload (Hex)',
+                placeholder:    'e.g. 0102FF0A3D…',
+                fportPlaceholder: 'e.g. 1',
+                btnDecode:      '▶ Decode',
+                btnHistory:     '🕘 History',
+                historyTitle:   'Last 5 Payloads',
+                historyEmpty:   'No payloads decoded yet.',
+                hint:           'Enter hex string without spaces or prefix. Shortcut: Ctrl+Enter',
+                labelLibrary:   '📚 Decoder Library',
+                btnSave:        '💾 Save',
+                btnNew:         '＋ New',
+                labelOutput:    'Output',
+                newDecoderOpt:  '— New Decoder (not saved) —',
+                errNoCode:      'Please insert decoder code.',
+                errNoPayload:   'Please enter a payload.',
+                errNoFunction:  'No known decoder function found (decodeUplink, Decode, Decoder)',
+                errHexOdd:      'Hex string has odd length',
+                errHexChars:    'Invalid hex characters',
+                errRuntime:     'Error running decoder',
+                successMsg:     (elapsed, bytes, fPort) => `Successfully decoded in ${elapsed} ms — ${bytes} bytes, fPort ${fPort}`,
+                libSlots:       (n, max) => `${n}/${max} used`,
+                libSaved:       '✅ Saved!',
+                libNoCode:      'No decoder code available.',
+                libMaxSlots:    (max) => `Maximum ${max} decoders can be saved. Please delete one first.`,
+                libNamePrompt:  (n) => `Name for this decoder: Decoder ${n}`,
+                libRenameTitle: 'New name:',
+                libNoSelect:    'Please select a saved decoder from the library first.',
+                libDeleteConfirm: (name) => `Really delete "${name}" from the library?`,
+                historyClick:   'Click to load',
+                migrated:       'Decoder 1 (migrated)',
+                titleSave:      'Save current decoder (Ctrl+S)',
+                titleRename:    'Rename decoder',
+                titleDelete:    'Delete decoder from library',
+                titleHistory:   'Recent payloads',
+                titleNew:       'Create new empty decoder',
+                decoderPlaceholder: `// Insert decoder function here, e.g.:
+//
+// function decodeUplink(input) {
+//   var bytes = input.bytes;
+//   var fPort = input.fPort;
+//   return { data: { temperature: bytes[0] } };
+// }
+//
+// Supported functions:
+//   decodeUplink(input)     — LoRaWAN Codec API v2
+//   Decode(fPort, bytes)    — TTN v2 style
+//   Decoder(bytes, port)    — TTN v2 alt`,
+            }
+        };
+
+        function dt(key) {
+            return decoderTranslations[currentLanguage][key];
+        }
+
+        function updateDecoderUI() {
+            const s = decoderTranslations[currentLanguage];
+            document.getElementById('dec-heading').textContent       = s.heading;
+            document.getElementById('dec-label-payload').textContent  = s.labelPayload;
+            document.getElementById('payloadInput').placeholder       = s.placeholder;
+            document.getElementById('fPortInput').placeholder         = s.fportPlaceholder;
+            document.getElementById('dec-btn-decode').textContent     = s.btnDecode;
+            document.getElementById('dec-btn-history').textContent    = s.btnHistory;
+            document.getElementById('dec-history-title').textContent  = s.historyTitle;
+            document.getElementById('dec-hint').textContent           = s.hint;
+            document.getElementById('dec-label-library').textContent  = s.labelLibrary;
+            document.getElementById('dec-btn-save').innerHTML         = s.btnSave;
+            document.getElementById('dec-btn-new').textContent        = s.btnNew;
+            document.getElementById('dec-label-output').textContent   = s.labelOutput;
+            document.querySelector('.btn-lib-save').title              = s.titleSave;
+            document.querySelector('.btn-lib-rename').title            = s.titleRename;
+            document.querySelector('.btn-lib-delete').title            = s.titleDelete;
+            document.querySelector('.btn-history').title               = s.titleHistory;
+            document.querySelector('.btn-lib-new').title               = s.titleNew;
+            document.getElementById('decoderCode').placeholder        = s.decoderPlaceholder;
+            renderHistory();
+            renderLibrarySelect();
+        }
+
+        window.onLanguageChange = updateDecoderUI;
+
+        function hexToBytes(hex) {
+            hex = hex.replace(/\s+/g, '');
+            if (hex.length % 2 !== 0) throw new Error(dt('errHexOdd'));
+            if (!/^[0-9a-fA-F]*$/.test(hex)) throw new Error(dt('errHexChars'));
+            const bytes = [];
+            for (let i = 0; i < hex.length; i += 2) {
+                bytes.push(parseInt(hex.substring(i, i + 2), 16));
+            }
+            return bytes;
+        }
+
+        function runDecoder() {
+            const statusEl = document.getElementById('status');
+            const outputEl = document.getElementById('output');
+            const code = document.getElementById('decoderCode').value.trim();
+            const hexPayload = document.getElementById('payloadInput').value.trim();
+            const fPort = parseInt(document.getElementById('fPortInput').value.trim()) || 1;
+
+            outputEl.value = '';
+            statusEl.textContent = '';
+            statusEl.className = 'status';
+
+            if (!code) {
+                statusEl.textContent = dt('errNoCode');
+                statusEl.className = 'status error';
+                return;
+            }
+            if (!hexPayload) {
+                statusEl.textContent = dt('errNoPayload');
+                statusEl.className = 'status error';
+                return;
+            }
+
+            let bytes;
+            try {
+                bytes = hexToBytes(hexPayload);
+            } catch (e) {
+                statusEl.textContent = e.message;
+                statusEl.className = 'status error';
+                return;
+            }
+
+            try {
+                const decoderFn = new Function('__bytes__', '__fPort__', code + `
+                    ;
+                    if (typeof decodeUplink === 'function') {
+                        return decodeUplink({ bytes: __bytes__, fPort: __fPort__ });
+                    } else if (typeof Decode === 'function') {
+                        return Decode(__fPort__, __bytes__);
+                    } else if (typeof Decoder === 'function') {
+                        return Decoder(__bytes__, __fPort__);
+                    } else {
+                        throw new Error(dt('errNoFunction'));
+                    }
+                `);
+
+                const startTime = performance.now();
+                const result = decoderFn(bytes, fPort);
+                const elapsed = (performance.now() - startTime).toFixed(2);
+
+                outputEl.value = JSON.stringify(result, null, 2);
+                statusEl.textContent = dt('successMsg')(elapsed, bytes.length, fPort);
+                statusEl.className = 'status success';
+
+                // Add to payload history
+                addToHistory(hexPayload, fPort);
+
+            } catch (e) {
+                outputEl.value = e.stack || e.message;
+                statusEl.textContent = dt('errRuntime');
+                statusEl.className = 'status error';
+            }
+        }
+
+        // Ctrl+Enter shortcut
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                runDecoder();
+            }
+            // Ctrl+S to save decoder
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                saveToLibrary();
+            }
+        });
+
+        // === DECODER LIBRARY (max 10 slots) ===
+        const LIB_KEY = 'lorawan_decoder_library';
+        const LIB_ACTIVE_KEY = 'lorawan_decoder_active';
+        const MAX_SLOTS = 10;
+        let activeSlot = -1; // -1 = unsaved/new
+
+        function getLibrary() {
+            try { return JSON.parse(localStorage.getItem(LIB_KEY)) || []; }
+            catch { return []; }
+        }
+
+        function setLibrary(lib) {
+            localStorage.setItem(LIB_KEY, JSON.stringify(lib));
+        }
+
+        function renderLibrarySelect() {
+            const sel = document.getElementById('librarySelect');
+            const lib = getLibrary();
+            sel.innerHTML = `<option value="-1">${dt('newDecoderOpt')}</option>`;
+            lib.forEach((item, i) => {
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.textContent = item.name;
+                sel.appendChild(opt);
+            });
+            sel.value = activeSlot;
+            document.getElementById('libSlotCount').textContent = dt('libSlots')(lib.length, MAX_SLOTS);
+        }
+
+        function saveToLibrary() {
+            const code = document.getElementById('decoderCode').value;
+            if (!code.trim()) { alert(dt('libNoCode')); return; }
+            const lib = getLibrary();
+
+            if (activeSlot >= 0 && activeSlot < lib.length) {
+                // Update existing slot
+                lib[activeSlot].code = code;
+                lib[activeSlot].updated = new Date().toLocaleString(currentLanguage === 'de' ? 'de-DE' : 'en-GB');
+                setLibrary(lib);
+                showLibSaveConfirmation();
+            } else {
+                // Save as new
+                if (lib.length >= MAX_SLOTS) {
+                    alert(dt('libMaxSlots')(MAX_SLOTS));
+                    return;
+                }
+                const name = prompt(dt('libNamePrompt')(lib.length + 1));
+                if (name === null) return;
+                const locale = currentLanguage === 'de' ? 'de-DE' : 'en-GB';
+                lib.push({ name: name || 'Decoder ' + (lib.length + 1), code, created: new Date().toLocaleString(locale), updated: new Date().toLocaleString(locale) });
+                setLibrary(lib);
+                activeSlot = lib.length - 1;
+                localStorage.setItem(LIB_ACTIVE_KEY, activeSlot);
+                renderLibrarySelect();
+                showLibSaveConfirmation();
+            }
+        }
+
+        function loadLibrarySlot(index) {
+            index = parseInt(index);
+            if (index === -1) {
+                activeSlot = -1;
+                document.getElementById('decoderCode').value = '';
+                localStorage.setItem(LIB_ACTIVE_KEY, -1);
+                return;
+            }
+            const lib = getLibrary();
+            if (lib[index]) {
+                activeSlot = index;
+                document.getElementById('decoderCode').value = lib[index].code;
+                localStorage.setItem(LIB_ACTIVE_KEY, index);
+            }
+        }
+
+        function newDecoder() {
+            activeSlot = -1;
+            document.getElementById('decoderCode').value = '';
+            document.getElementById('librarySelect').value = -1;
+            localStorage.setItem(LIB_ACTIVE_KEY, -1);
+        }
+
+        function renameLibrarySlot() {
+            const lib = getLibrary();
+            if (activeSlot < 0 || activeSlot >= lib.length) {
+                alert(dt('libNoSelect'));
+                return;
+            }
+            const newName = prompt(dt('libRenameTitle'), lib[activeSlot].name);
+            if (newName === null || !newName.trim()) return;
+            lib[activeSlot].name = newName.trim();
+            setLibrary(lib);
+            renderLibrarySelect();
+        }
+
+        function deleteLibrarySlot() {
+            const lib = getLibrary();
+            if (activeSlot < 0 || activeSlot >= lib.length) {
+                alert(dt('libNoSelect'));
+                return;
+            }
+            if (!confirm(dt('libDeleteConfirm')(lib[activeSlot].name))) return;
+            lib.splice(activeSlot, 1);
+            setLibrary(lib);
+            activeSlot = -1;
+            document.getElementById('decoderCode').value = '';
+            localStorage.setItem(LIB_ACTIVE_KEY, -1);
+            renderLibrarySelect();
+        }
+
+        function showLibSaveConfirmation() {
+            const btn = document.querySelector('.btn-lib-save');
+            const origText = btn.innerHTML;
+            btn.innerHTML = dt('libSaved');
+            setTimeout(() => { btn.innerHTML = origText; }, 1500);
+        }
+
+        // === PAYLOAD HISTORY ===
+        const HISTORY_KEY = 'lorawan_payload_history';
+        const MAX_HISTORY = 5;
+
+        function getPayloadHistory() {
+            try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
+            catch { return []; }
+        }
+
+        function addToHistory(hex, fPort) {
+            let history = getPayloadHistory();
+            // Remove duplicate if same payload+port exists
+            history = history.filter(h => !(h.hex === hex && h.fPort === fPort));
+            history.unshift({ hex, fPort, time: new Date().toLocaleString(currentLanguage === 'de' ? 'de-DE' : 'en-GB') });
+            if (history.length > MAX_HISTORY) history.length = MAX_HISTORY;
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            const history = getPayloadHistory();
+            if (history.length === 0) {
+                list.innerHTML = `<div class="history-empty">${dt('historyEmpty')}</div>`;
+                return;
+            }
+            list.innerHTML = history.map((h, i) =>
+                `<div class="history-item" onclick="loadFromHistory(${i})" title="${dt('historyClick')}">` 
+                + `<span class="history-item-payload">${h.hex}</span>`
+                + `<span class="history-item-meta">Port ${h.fPort} &middot; ${h.time}</span>`
+                + `</div>`
+            ).join('');
+        }
+
+        function loadFromHistory(index) {
+            const history = getPayloadHistory();
+            if (history[index]) {
+                document.getElementById('payloadInput').value = history[index].hex;
+                document.getElementById('fPortInput').value = history[index].fPort;
+                closeHistory();
+            }
+        }
+
+        function toggleHistory() {
+            const dd = document.getElementById('historyDropdown');
+            dd.classList.toggle('open');
+            if (dd.classList.contains('open')) renderHistory();
+        }
+
+        function closeHistory() {
+            document.getElementById('historyDropdown').classList.remove('open');
+        }
+
+        // Close history when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.history-container')) closeHistory();
+        });
+
+        // Load library & active decoder on page load
+        (function init() {
+            // Migrate old single-save to library
+            const oldCode = localStorage.getItem('lorawan_decoder_code');
+            if (oldCode) {
+                const lib = getLibrary();
+                if (lib.length === 0) {
+                    const migrLocale = currentLanguage === 'de' ? 'de-DE' : 'en-GB';
+                    lib.push({ name: dt('migrated'), code: oldCode, created: new Date().toLocaleString(migrLocale), updated: new Date().toLocaleString(migrLocale) });
+                    setLibrary(lib);
+                    activeSlot = 0;
+                    localStorage.setItem(LIB_ACTIVE_KEY, 0);
+                }
+                localStorage.removeItem('lorawan_decoder_code');
+                localStorage.removeItem('lorawan_decoder_saved_at');
+            }
+
+            // Restore active slot
+            const savedSlot = parseInt(localStorage.getItem(LIB_ACTIVE_KEY));
+            const lib = getLibrary();
+            if (!isNaN(savedSlot) && savedSlot >= 0 && savedSlot < lib.length) {
+                activeSlot = savedSlot;
+                document.getElementById('decoderCode').value = lib[activeSlot].code;
+            }
+            updateDecoderUI();
+        })();
+    </script>
+</body>
+</html>
