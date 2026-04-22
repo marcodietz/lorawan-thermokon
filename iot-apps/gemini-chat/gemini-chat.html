@@ -330,16 +330,58 @@
 // ==== PASSWORT-SCHUTZ ====
 // Das Passwort ist hier statisch im Frontend gespeichert.
 // Für erhöhte Sicherheit: Prüfung serverseitig verlagern (POST /api/auth).
-const _PW_HASH = '9d2a4f6b1c8e3d7f5a0b2e4c6d8f1a3b5c7e9d2a4f6b1c8e3d7f5a0b2e4c6d'; // SHA-256 Platzhalter – wird unten mit SubtleCrypto verglichen
+const _PW_HASH = '06e01607dbee654f0ac5aad3779428279484b4b41b19b25bf24ec97fbcd98b17'; // SHA-256 von "Thermokon"
+const _PW_PLAINTEXT_FALLBACK = 'Thermokon'; // Fallback falls WebCrypto nicht verfuegbar ist
+const _AUTH_STORAGE_KEYS = ['gemini-auth', 'gemini-auth-v2'];
+let _authGrantedInMemory = false;
+
+function _normalizePassword(value) {
+    return (value || '').trim().normalize('NFC');
+}
+
+function _getStoredAuth() {
+    if (_authGrantedInMemory) {
+        return _PW_HASH;
+    }
+    const storageBackends = [window.sessionStorage, window.localStorage];
+    for (const storage of storageBackends) {
+        try {
+            for (const key of _AUTH_STORAGE_KEYS) {
+                const value = storage.getItem(key);
+                if (value) return value;
+            }
+        } catch (_) {
+            // Storage kann je nach Hosting/Browser blockiert sein.
+        }
+    }
+    return '';
+}
+
+function _setStoredAuth(value) {
+    _authGrantedInMemory = value === _PW_HASH;
+    const storageBackends = [window.sessionStorage, window.localStorage];
+    for (const storage of storageBackends) {
+        try {
+            for (const key of _AUTH_STORAGE_KEYS) {
+                storage.setItem(key, value);
+            }
+        } catch (_) {
+            // Wenn Storage blockiert ist, bleibt die Freigabe wenigstens fuer dieses Dokument aktiv.
+        }
+    }
+}
 
 async function _sha256(str) {
+    if (!window.crypto || !window.crypto.subtle) {
+        return '';
+    }
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
     return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
 // Gespeicherten Session-Status prüfen
 (async function initPwGate() {
-    if (sessionStorage.getItem('gemini-auth') === await _sha256('Thermokon')) {
+    if (_getStoredAuth() === _PW_HASH) {
         document.getElementById('pwOverlay').classList.add('hidden');
     } else {
         setTimeout(() => document.getElementById('pwInput').focus(), 100);
@@ -347,19 +389,23 @@ async function _sha256(str) {
 })();
 
 async function checkPassword() {
-    const val   = document.getElementById('pwInput').value;
+    const val   = _normalizePassword(document.getElementById('pwInput').value);
     const input = document.getElementById('pwInput');
     const err   = document.getElementById('pwError');
     const hash  = await _sha256(val);
-    const correct = await _sha256('Thermokon');
-    if (hash === correct) {
-        sessionStorage.setItem('gemini-auth', hash);
+    const isCorrect = (hash && hash === _PW_HASH) || (!hash && val === _normalizePassword(_PW_PLAINTEXT_FALLBACK));
+    if (isCorrect) {
+        _setStoredAuth(_PW_HASH);
+        err.textContent = '';
         document.getElementById('pwOverlay').classList.add('hidden');
         document.getElementById('userInput').focus();
     } else {
         input.classList.add('error');
         const lang = (typeof currentLanguage !== 'undefined') ? currentLanguage : 'de';
-        err.textContent = geminiTranslations[lang].pwError;
+        const fallbackPwError = (lang === 'en') ? 'Incorrect password. Please try again.' : 'Falsches Passwort. Bitte erneut versuchen.';
+        err.textContent = (typeof geminiTranslations !== 'undefined' && geminiTranslations[lang])
+            ? geminiTranslations[lang].pwError
+            : fallbackPwError;
         setTimeout(() => input.classList.remove('error'), 400);
         input.value = '';
         input.focus();
